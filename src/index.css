@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #10201b;
+  --color-brand: #0b7a5b;
+  --color-brand-dark: #075a43;
+  --color-brand-tint: #e3f1eb;
+  --color-accent: #f2b33d;
+  --color-ground: #f4f7f5;
+  --color-line: #dce4e0;
+  --color-field: #b5c4bd;
+  --color-muted: #5b6b65;
+  --color-danger: #b3261e;
+  --font-sans: "Figtree", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Figtree", sans-serif;
+}
+
+body {
+  @apply bg-ground font-sans text-ink antialiased;
+}
+
+/* Tailwind's reset makes buttons use the default arrow cursor. Interactive things get a pointer. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  a[href],
+  select:not(:disabled),
+  summary,
+  label:has(input[type="checkbox"]:not(:disabled)),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="range"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled,
+  label:has(input:disabled) {
+    cursor: not-allowed;
+  }
+}
+
+/* Toasts */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: toast-in 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}
+
+/* Loading skeletons: a soft light sweep over a pale block. */
+@keyframes skeleton-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skeleton {
+  background-color: #e6ede9;
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.65) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

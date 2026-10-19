@@ -1,0 +1,19 @@
+# Search engines may read the public website but not the signed-in app or the API.
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /elections
+Disallow: /candidates
+Disallow: /categories
+Disallow: /results
+Disallow: /withdrawals
+Disallow: /settings
+Disallow: /api/
+
+# Replace YOUR-DOMAIN with the website's real address. The sitemap itself is made by the server, so the website's host
+# must send /sitemap.xml to it (in development, the dev server already does).
+Sitemap: https://YOUR-DOMAIN/sitemap.xml

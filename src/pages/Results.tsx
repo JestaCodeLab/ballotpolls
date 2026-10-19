@@ -1,0 +1,315 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { BarChart3, Coins, Vote } from 'lucide-react'
+import { api, type Category, type Election, type Nomination } from '../lib/api'
+import { Avatar, Card, EmptyState, LinkButton, PageHeader, Select, StatIcon } from '../components/ui'
+import { ghs } from '../lib/format'
+import { toast } from '../store/toast'
+import { ChartSkeleton, Loading, Skeleton } from '../components/Loading'
+
+const POLL_MS = 10_000
+
+const countdown = (ms: number) => {
+  const mins = Math.max(0, Math.floor(ms / 60000))
+  const d = Math.floor(mins / 1440)
+  const h = Math.floor((mins % 1440) / 60)
+  const m = mins % 60
+  return `${d ? `${d}d ` : ''}${String(h).padStart(2, '0')}h ${String(m).padStart(2, '0')}m`
+}
+
+// Rounds the axis up to a tidy maximum (1, 2 or 5 times a power of ten) with at most 5 gridline steps.
+const niceAxis = (top: number) => {
+  if (top <= 0) return { max: 5, step: 1 }
+  const mag = Math.pow(10, Math.floor(Math.log10(top / 4)))
+  const step = [1, 2, 5, 10].map((m) => m * mag).find((x) => top / x <= 5)!
+  return { max: Math.ceil(top / step) * step, step }
+}
+
+const CHART_H = 260
+// Each candidate gets at least this much width, so long lists scroll sideways instead of squeezing.
+const COL_MIN = 88
+
+export default function Results() {
+  const [elections, setElections] = useState<Election[] | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [electionId, setElectionId] = useState<string>('')
+  const [noms, setNoms] = useState<Nomination[]>([])
+  const [categoryId, setCategoryId] = useState<string>('')
+  const [now, setNow] = useState(() => Date.now())
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null)
+
+  useEffect(() => {
+    Promise.all([api.get<Election[]>('/elections'), api.get<Category[]>('/categories')])
+      .then(([e, c]) => {
+        setElections(e.data)
+        setCategories(c.data)
+        // Start on the election that is live, otherwise the most recent one.
+        setElectionId((e.data.find((x) => x.status === 'live') ?? e.data[0])?.id ?? '')
+      })
+      .catch((err) => {
+        toast.fromError(err)
+        setElections([])
+      })
+  }, [])
+
+  const election = elections?.find((e) => e.id === electionId)
+  const live = election?.status === 'live'
+
+  const loadVotes = useCallback(async () => {
+    if (!electionId) return
+    try {
+      const { data } = await api.get<Nomination[]>(`/elections/${electionId}/nominations`)
+      setNoms(data)
+      setUpdatedAt(Date.now())
+    } catch (err) {
+      toast.fromError(err)
+    }
+  }, [electionId])
+
+  useEffect(() => {
+    loadVotes()
+    if (!live) return
+    const t = setInterval(loadVotes, POLL_MS)
+    return () => clearInterval(t)
+  }, [loadVotes, live])
+
+  // Keeps the countdown and "updated … ago" text moving between refreshes.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000)
+    return () => clearInterval(t)
+  }, [])
+
+  const tabs = useMemo(() => {
+    const name = new Map(categories.map((c) => [c._id, c.name]))
+    const ids = [...new Set(noms.map((n) => n.categoryId))]
+    return ids.map((id) => ({ id, name: name.get(id) ?? 'Category' })).sort((a, b) => a.name.localeCompare(b.name))
+  }, [noms, categories])
+
+  const activeId = tabs.some((t) => t.id === categoryId) ? categoryId : (tabs[0]?.id ?? '')
+  const rows = useMemo(
+    () => noms.filter((n) => n.categoryId === activeId).sort((a, b) => b.voteCount - a.voteCount),
+    [noms, activeId],
+  )
+  const categoryTotal = rows.reduce((s, n) => s + n.voteCount, 0)
+  const totalVotes = noms.reduce((s, n) => s + n.voteCount, 0)
+  const axis = niceAxis(rows[0]?.voteCount ?? 0)
+  const ticks = Array.from({ length: Math.round(axis.max / axis.step) + 1 }, (_, i) => i * axis.step)
+
+  if (elections === null)
+    return (
+      <>
+        <PageHeader title="Live results" />
+        <Loading label="Loading results">
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 gap-4">
+              {[0, 1].map((i) => (
+                <div key={i} className="rounded-[14px] border border-line bg-white p-5">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="mt-3 h-8 w-32" />
+                </div>
+              ))}
+            </div>
+            <ChartSkeleton />
+          </div>
+        </Loading>
+      </>
+    )
+
+  if (!election)
+    return (
+      <>
+        <PageHeader title="Live results" />
+        <EmptyState
+          icon={BarChart3}
+          title="No elections yet"
+          action={<LinkButton to="/elections/new">Create an election</LinkButton>}
+        >
+          Once an election is open for voting, results appear here and update as votes come in.
+        </EmptyState>
+      </>
+    )
+
+  const ago = updatedAt ? Math.max(0, Math.round((now - updatedAt) / 1000)) : null
+  const clock =
+    election.status === 'live'
+      ? { label: 'Voting closes in', value: countdown(new Date(election.endsAt).getTime() - now) }
+      : election.status === 'upcoming'
+        ? { label: 'Voting opens in', value: countdown(new Date(election.startsAt).getTime() - now) }
+        : { label: 'Voting', value: 'Closed' }
+
+  return (
+    <>
+      <PageHeader
+        title="Live results"
+        subtitle={
+          <span className="flex flex-wrap items-center gap-2">
+            {live && <span aria-hidden="true" className="h-[9px] w-[9px] rounded-full bg-accent ring-4 ring-accent/30" />}
+            {election.name}
+            {live && ago !== null && <> · updated {ago < 5 ? 'just now' : `${ago} seconds ago`}</>}
+          </span>
+        }
+        action={
+          <div className="text-right">
+            <div className="text-[13px] text-muted">{clock.label}</div>
+            <div className="font-display text-3xl font-bold tracking-tight tabular-nums">{clock.value}</div>
+          </div>
+        }
+      />
+
+      {elections.length > 1 && (
+        <div className="max-w-sm">
+          <Select
+            label="Election"
+            value={electionId}
+            onChange={setElectionId}
+            options={elections.map((e) => ({ value: e.id, label: `${e.name} (${e.status})` }))}
+          />
+        </div>
+      )}
+
+      <section className="grid grid-cols-2 gap-4">
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="text-sm text-muted">Total votes</div>
+            <StatIcon icon={Vote} />
+          </div>
+          <div className="mt-1.5 font-display text-3xl font-bold tracking-tight">{totalVotes.toLocaleString()}</div>
+        </Card>
+        <Card className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="text-sm text-muted">Revenue (confirmed)</div>
+            <StatIcon icon={Coins} />
+          </div>
+          <div className="mt-1.5 font-display text-3xl font-bold tracking-tight">{ghs(totalVotes * election.pricePerVote)}</div>
+        </Card>
+      </section>
+
+      {tabs.length === 0 ? (
+        <Card>
+          <EmptyState size="sm" icon={BarChart3} title="No candidates nominated yet">
+            Assign candidates to categories in this election and their votes will show here.
+          </EmptyState>
+        </Card>
+      ) : (
+        <>
+          <div role="tablist" aria-label="Categories" className="flex flex-wrap gap-2">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={t.id === activeId}
+                onClick={() => setCategoryId(t.id)}
+                className={`min-h-11 rounded-full border px-[18px] text-sm font-semibold ${t.id === activeId ? 'border-ink bg-ink text-white' : 'border-field bg-white hover:bg-ground'}`}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+
+          <Card>
+            <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="font-display text-[22px] font-bold">{tabs.find((t) => t.id === activeId)?.name}</h2>
+              <span className="text-sm text-muted">{categoryTotal.toLocaleString()} votes in this category</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <div className="flex gap-3" style={{ minWidth: 44 + 12 + rows.length * COL_MIN }}>
+                <div aria-hidden="true" className="relative w-11 shrink-0" style={{ height: CHART_H }}>
+                  {ticks.map((t) => (
+                    <span
+                      key={t}
+                      className="absolute right-0 translate-y-1/2 text-xs tabular-nums text-muted"
+                      style={{ bottom: `${(t / axis.max) * 100}%` }}
+                    >
+                      {t.toLocaleString()}
+                    </span>
+                  ))}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="relative" style={{ height: CHART_H }}>
+                    {ticks.map((t) => (
+                      <div
+                        key={t}
+                        aria-hidden="true"
+                        className={`absolute inset-x-0 h-px ${t === 0 ? 'bg-field' : 'bg-[#e6ede9]'}`}
+                        style={{ bottom: `${(t / axis.max) * 100}%` }}
+                      />
+                    ))}
+                    <div className="absolute inset-0 flex items-end">
+                      {rows.map((n, i) => {
+                        const h = (n.voteCount / axis.max) * 100
+                        const share = categoryTotal ? Math.round((n.voteCount / categoryTotal) * 100) : 0
+                        return (
+                          <button
+                            key={n.id}
+                            type="button"
+                            aria-label={`${n.candidate.name}, ${n.voteCount.toLocaleString()} votes, ${share}% of category`}
+                            className="group relative flex h-full min-w-0 flex-1 items-end justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                          >
+                            <span
+                              className="w-14 rounded-t-[4px] bg-brand transition-colors group-hover:bg-brand-dark group-focus-visible:bg-brand-dark"
+                              style={{ height: `${h}%` }}
+                            />
+                            <span
+                              className="absolute inset-x-0 mb-1.5 text-center text-sm font-semibold tabular-nums"
+                              style={{ bottom: `${h}%` }}
+                            >
+                              {n.voteCount.toLocaleString()}
+                            </span>
+                            <span
+                              role="tooltip"
+                              className="pointer-events-none absolute left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-[10px] bg-ink px-3 py-2.5 text-left text-[13px] leading-snug text-white shadow-lg group-hover:block group-focus-visible:block"
+                              style={{ bottom: `calc(${h}% + 34px)` }}
+                            >
+                              <strong className="block text-sm">{n.candidate.name}</strong>
+                              {n.voteCount.toLocaleString()} votes · {share}% of category
+                              <br />
+                              <span className="text-[#b7c7bf]">
+                                Rank {i + 1} of {rows.length}
+                              </span>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex">
+                    {rows.map((n) => (
+                      <div key={n.id} className="flex min-w-0 flex-1 flex-col items-center gap-1.5 px-2 text-center">
+                        <Avatar name={n.candidate.name} src={n.candidate.imageUrl} size={36} />
+                        <div className="text-sm font-semibold leading-snug">{n.candidate.name}</div>
+                        <div className="text-[13px] text-muted">
+                          {categoryTotal ? Math.round((n.voteCount / categoryTotal) * 100) : 0}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <table className="sr-only">
+              <caption>Votes per candidate, {tabs.find((t) => t.id === activeId)?.name}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Candidate</th>
+                  <th scope="col">Votes</th>
+                  <th scope="col">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((n) => (
+                  <tr key={n.id}>
+                    <th scope="row">{n.candidate.name}</th>
+                    <td>{n.voteCount}</td>
+                    <td>{categoryTotal ? Math.round((n.voteCount / categoryTotal) * 100) : 0}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
+    </>
+  )
+}
