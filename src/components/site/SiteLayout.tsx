@@ -29,7 +29,7 @@ export default function SiteLayout() {
       </a>
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex min-h-[76px] max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-2 md:px-8">
-          <Link to="/" aria-label="Tally home" className="text-ink">
+          <Link to="/" aria-label="BallotPolls home" className="text-ink">
             <Logo />
           </Link>
           <nav aria-label="Main" className="flex flex-wrap items-center gap-1">

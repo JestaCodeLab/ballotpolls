@@ -16,4 +16,4 @@ The files here now are plain placeholders. Replace them with real artwork using 
 **Election pages need nothing in this folder.** Each election page, and each candidate page inside it, uses that election's own
 cover image as its share preview.
 
-Set `VITE_SITE_URL` (for example `https://tally.example.com`) in `client/.env`, because share previews need full web addresses.
+Set `VITE_SITE_URL` (for example `https://ballotpolls.example.com`) in `client/.env`, because share previews need full web addresses.

@@ -112,7 +112,7 @@ export function downloadImportTemplate() {
   const url = URL.createObjectURL(new Blob(['﻿' + TEMPLATE], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = 'tally-candidates-template.csv'
+  a.download = 'ballotpolls-candidates-template.csv'
   document.body.appendChild(a)
   a.click()
   a.remove()

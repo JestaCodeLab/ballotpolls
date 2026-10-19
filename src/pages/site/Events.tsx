@@ -27,7 +27,7 @@ export default function Events() {
   }, [])
 
   useSeo({
-    title: 'Elections you can vote in by phone | Tally',
+    title: 'Elections you can vote in by phone | BallotPolls',
     description: 'Find an election, see who is standing and learn how to vote. Dial the short code from any phone and pay with mobile money.',
     path: '/events',
     image: ogImage('events'),

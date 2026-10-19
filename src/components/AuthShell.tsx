@@ -5,13 +5,13 @@ import { useSeo } from '../lib/useSeo'
 
 export default function AuthShell({ mode, children }: { mode?: 'login' | 'register'; children: ReactNode }) {
   // Sign-in, register and reset pages are not for search results.
-  useSeo({ title: 'Sign in | Tally', description: 'Sign in to Tally.', noindex: true })
+  useSeo({ title: 'Sign in | BallotPolls', description: 'Sign in to BallotPolls.', noindex: true })
   const tab = (active: boolean) =>
     `flex min-h-11 flex-1 items-center justify-center rounded-[9px] text-[15px] font-semibold ${active ? 'bg-white text-ink shadow-sm' : 'text-muted'}`
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       <section className="flex flex-1 flex-col justify-between gap-12 bg-ink p-8 text-[#e8efeb] lg:p-14">
-        <Link to="/" aria-label="Tally home" className="w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+        <Link to="/" aria-label="BallotPolls home" className="w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
           <Logo />
         </Link>
         <div>

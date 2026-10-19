@@ -30,7 +30,7 @@ export default function Home() {
   }, [])
 
   useSeo({
-    title: 'Tally | Run an election people vote in from any phone',
+    title: 'BallotPolls | Run an election people vote in from any phone',
     description: DEFAULT_DESCRIPTION,
     path: '/',
     image: ogImage('home'),

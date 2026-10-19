@@ -1,10 +1,10 @@
 // Settings for the public website. All are optional settings in client/.env.
-//   VITE_SITE_URL:         the website's address, e.g. https://tally.example.com. Used in canonical links and share previews.
+//   VITE_SITE_URL:         the website's address, e.g. https://ballotpolls.example.com. Used in canonical links and share previews.
 //   VITE_SUPPORT_EMAIL:    the address behind Contact > Email.
 //   VITE_WHATSAPP_NUMBER:  the number behind Contact > WhatsApp, with country code, digits only (233241234567).
 //   VITE_USSD_SHORTCODE:   what voters dial, e.g. *713*55#.
 
-export const SITE_NAME = 'Tally'
+export const SITE_NAME = 'BallotPolls'
 export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) ?? (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '')
 export const absoluteUrl = (path: string) => `${SITE_URL}${path}`
 

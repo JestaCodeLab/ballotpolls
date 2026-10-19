@@ -6,7 +6,7 @@ import { Section } from '../../components/site/parts'
 
 // Shown for an address that does not exist, or an election or candidate that is gone. Kept out of search results.
 export default function SiteNotFound({ what = 'page' }: { what?: 'page' | 'election' | 'candidate' }) {
-  useSeo({ title: 'Page not found | Tally', description: 'This page could not be found.', noindex: true })
+  useSeo({ title: 'Page not found | BallotPolls', description: 'This page could not be found.', noindex: true })
   return (
     <Section className="py-20">
       <EmptyState icon={SearchX} title={`We could not find that ${what}`} action={<LinkButton to="/events">Browse elections</LinkButton>}>

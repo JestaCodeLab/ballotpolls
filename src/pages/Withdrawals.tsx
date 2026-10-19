@@ -95,7 +95,7 @@ export default function Withdrawals() {
 
   return (
     <>
-      <PageHeader title="Withdrawals" subtitle="Take your election revenue out of Tally. Approved withdrawals are released within 1 hour." />
+      <PageHeader title="Withdrawals" subtitle="Take your election revenue out of BallotPolls. Approved withdrawals are released within 1 hour." />
 
       {!loaded && (
         <Loading label="Loading balance">

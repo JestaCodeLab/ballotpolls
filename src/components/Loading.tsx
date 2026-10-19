@@ -198,7 +198,7 @@ export function AppLoader() {
         <Logo />
       </div>
       <div aria-hidden="true" className="skeleton h-1 w-40 rounded-full" />
-      <span className="sr-only">Loading Tally…</span>
+      <span className="sr-only">Loading BallotPolls…</span>
     </div>
   )
 }

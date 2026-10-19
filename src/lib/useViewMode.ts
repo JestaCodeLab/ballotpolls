@@ -4,7 +4,7 @@ export type ViewMode = 'cards' | 'table'
 
 // Remembers whether a list is shown as cards or as a table, per page, in this browser.
 export function useViewMode(page: string): [ViewMode, (mode: ViewMode) => void] {
-  const key = `tally:view:${page}`
+  const key = `ballotpolls:view:${page}`
   const [mode, setMode] = useState<ViewMode>(() => {
     try {
       return localStorage.getItem(key) === 'table' ? 'table' : 'cards'

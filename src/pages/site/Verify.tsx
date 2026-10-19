@@ -41,7 +41,7 @@ export default function Verify() {
   const [problem, setProblem] = useState<string | null>(null)
 
   useSeo({
-    title: 'Verify your vote payments | Tally',
+    title: 'Verify your vote payments | BallotPolls',
     description: 'Enter the phone number you voted with to see every payment made from it and confirm your votes were counted.',
     path: '/verify',
     image: ogImage('default'),

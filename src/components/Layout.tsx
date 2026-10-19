@@ -21,7 +21,7 @@ export function Logo() {
           <path d="M5 12.5l4.5 4.5L19 7" />
         </svg>
       </div>
-      <span className="font-display text-xl font-bold">Tally</span>
+      <span className="font-display text-xl font-bold">BallotPolls</span>
     </div>
   )
 }
