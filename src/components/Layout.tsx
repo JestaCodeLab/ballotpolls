@@ -17,9 +17,7 @@ export function Logo() {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-ink">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 12.5l4.5 4.5L19 7" />
-        </svg>
+        <Vote size={19} strokeWidth={2.2} aria-hidden="true" />
       </div>
       <span className="font-display text-xl font-bold">BallotPolls</span>
     </div>
