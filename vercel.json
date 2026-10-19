@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://api.ballotpolls.com/api/:path*" },
+    { "source": "/sitemap.xml", "destination": "https://api.ballotpolls.com/sitemap.xml" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
