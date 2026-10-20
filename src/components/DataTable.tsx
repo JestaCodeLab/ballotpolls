@@ -15,6 +15,10 @@ export interface Column<T> {
   hideHeader?: boolean
   // Extra classes for this column's cells, e.g. 'whitespace-nowrap'.
   className?: string
+  // On phones each row becomes a card; leave this column out of it.
+  mobileHide?: boolean
+  // On phones, let this column's value take the card's full width instead of half.
+  mobileWide?: boolean
 }
 
 // Turns on checkboxes and a "Delete selected" bar. The table asks for confirmation, then hands the chosen rows to onDelete.
@@ -120,7 +124,8 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto">
+      {/* Wide screens: a table. */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-sm" style={{ minWidth }}>
           <caption className="sr-only">{caption}</caption>
           <thead>
@@ -204,6 +209,64 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
           </tbody>
         </table>
       </div>
+
+      {/* Phones: one card per row. The first column is the title, the other columns become labelled pairs, and the
+          actions column sits along the bottom. */}
+      <ul className="divide-y divide-line md:hidden">
+        {bulkDelete && selectable.length > 0 && (
+          <li className="flex items-center gap-2 bg-ground px-3 py-1.5">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-[#3f4f49]">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected
+                }}
+                onChange={toggleAll}
+                className="h-4 w-4 cursor-pointer accent-brand"
+              />
+              Select all
+            </label>
+          </li>
+        )}
+        {sorted.map((row) => {
+          const [first, ...rest] = columns
+          const isActions = (c: Column<T>) => c.key === 'actions' || c.hideHeader
+          const fields = rest.filter((c) => !isActions(c) && !c.mobileHide)
+          const actions = rest.filter(isActions)
+          const chosen = picked.has(rowKey(row)) && canSelect(row)
+          return (
+            <li key={rowKey(row)} className={`px-4 py-4 ${chosen ? 'bg-brand-tint/40' : ''} ${rowClassName?.(row) ?? ''}`}>
+              <div className="flex items-start gap-3">
+                {bulkDelete && (
+                  <label className="-ml-2 -mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center" title={canSelect(row) ? undefined : bulkDelete.disabledReason}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${bulkDelete.rowLabel(row)}`}
+                      checked={chosen}
+                      disabled={!canSelect(row)}
+                      onChange={() => toggleRow(row)}
+                      className="h-4 w-4 cursor-pointer accent-brand disabled:cursor-not-allowed"
+                    />
+                  </label>
+                )}
+                <div className="min-w-0 flex-1 font-semibold">{first.cell(row)}</div>
+              </div>
+              {fields.length > 0 && (
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  {fields.map((c) => (
+                    <div key={c.key} className={`min-w-0 ${c.mobileWide ? 'col-span-2' : ''}`}>
+                      <dt className="text-xs text-muted">{c.header}</dt>
+                      <dd className="mt-0.5">{c.cell(row)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {actions.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[#eef2f0] pt-3">{actions.map((c) => <div key={c.key}>{c.cell(row)}</div>)}</div>}
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

@@ -26,7 +26,7 @@ const niceAxis = (top: number) => {
 
 const CHART_H = 260
 // Each candidate gets at least this much width, so long lists scroll sideways instead of squeezing.
-const COL_MIN = 88
+const COL_MIN = 64
 
 export default function Results() {
   const [elections, setElections] = useState<Election[] | null>(null)
@@ -141,14 +141,16 @@ export default function Results() {
       <PageHeader
         title="Live results"
         subtitle={
-          <span className="flex flex-wrap items-center gap-2">
-            {live && <span aria-hidden="true" className="h-[9px] w-[9px] rounded-full bg-accent ring-4 ring-accent/30" />}
-            {election.name}
-            {live && ago !== null && <> · updated {ago < 5 ? 'just now' : `${ago} seconds ago`}</>}
+          <span className="flex items-start gap-2">
+            {live && <span aria-hidden="true" className="mt-[7px] h-[9px] w-[9px] shrink-0 rounded-full bg-accent ring-4 ring-accent/30" />}
+            <span className="min-w-0">
+              {election.name}
+              {live && ago !== null && <> · updated {ago < 5 ? 'just now' : `${ago} seconds ago`}</>}
+            </span>
           </span>
         }
         action={
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <div className="text-[13px] text-muted">{clock.label}</div>
             <div className="font-display text-3xl font-bold tracking-tight tabular-nums">{clock.value}</div>
           </div>
@@ -172,14 +174,14 @@ export default function Results() {
             <div className="text-sm text-muted">Total votes</div>
             <StatIcon icon={Vote} />
           </div>
-          <div className="mt-1.5 font-display text-3xl font-bold tracking-tight">{totalVotes.toLocaleString()}</div>
+          <div className="mt-1.5 font-display text-2xl font-bold tracking-tight sm:text-3xl">{totalVotes.toLocaleString()}</div>
         </Card>
         <Card className="p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="text-sm text-muted">Revenue (confirmed)</div>
             <StatIcon icon={Coins} />
           </div>
-          <div className="mt-1.5 font-display text-3xl font-bold tracking-tight">{ghs(totalVotes * election.pricePerVote)}</div>
+          <div className="mt-1.5 font-display text-2xl font-bold tracking-tight sm:text-3xl">{ghs(totalVotes * election.pricePerVote)}</div>
         </Card>
       </section>
 
@@ -206,15 +208,15 @@ export default function Results() {
             ))}
           </div>
 
-          <Card>
+          <Card className="p-4 sm:p-6">
             <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
               <h2 className="font-display text-[22px] font-bold">{tabs.find((t) => t.id === activeId)?.name}</h2>
               <span className="text-sm text-muted">{categoryTotal.toLocaleString()} votes in this category</span>
             </div>
 
             <div className="overflow-x-auto">
-              <div className="flex gap-3" style={{ minWidth: 44 + 12 + rows.length * COL_MIN }}>
-                <div aria-hidden="true" className="relative w-11 shrink-0" style={{ height: CHART_H }}>
+              <div className="flex gap-2 sm:gap-3" style={{ minWidth: 48 + rows.length * COL_MIN }}>
+                <div aria-hidden="true" className="relative w-8 shrink-0 sm:w-11" style={{ height: CHART_H }}>
                   {ticks.map((t) => (
                     <span
                       key={t}
@@ -247,7 +249,7 @@ export default function Results() {
                             className="group relative flex h-full min-w-0 flex-1 items-end justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                           >
                             <span
-                              className="w-14 rounded-t-[4px] bg-brand transition-colors group-hover:bg-brand-dark group-focus-visible:bg-brand-dark"
+                              className="w-9 rounded-t-[4px] bg-brand transition-colors sm:w-14 group-hover:bg-brand-dark group-focus-visible:bg-brand-dark"
                               style={{ height: `${h}%` }}
                             />
                             <span

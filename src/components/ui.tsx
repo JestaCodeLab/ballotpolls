@@ -101,7 +101,9 @@ export function Textarea({ label, hint, ...props }: TextareaHTMLAttributes<HTMLT
 export { default as Select } from './Select'
 
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) {
-  return <div className={`rounded-[14px] border border-line bg-white p-6 ${className}`}>{children}</div>
+  // The default padding applies only when the caller has not chosen its own, so a passed "p-4 sm:p-6" really takes effect.
+  const padding = /(^|\s)p-/.test(className) ? '' : 'p-6'
+  return <div className={`rounded-[14px] border border-line bg-white ${padding} ${className}`}>{children}</div>
 }
 
 export function PageHeader({

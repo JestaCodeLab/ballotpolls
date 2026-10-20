@@ -93,8 +93,8 @@ export default function Overview() {
             </Loading>
           )}
           {(live.length ? live : elections.slice(0, 3)).map((e) => (
-            <Link key={e.id} to={`/elections/${e.id}`} className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-3.5 first:border-t-0 hover:bg-ground/60">
-              <ElectionCover src={e.coverImageUrl} name={e.name} className="h-12 w-[85px] rounded-lg" />
+            <Link key={e.id} to={`/elections/${e.id}`} className="flex flex-col gap-3 border-t border-line py-3.5 first:border-t-0 hover:bg-ground/60 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <ElectionCover src={e.coverImageUrl} name={e.name} className="h-28 w-full rounded-lg sm:h-12 sm:w-[85px]" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5 font-semibold">
                   {e.name} <StatusChip status={e.status} />

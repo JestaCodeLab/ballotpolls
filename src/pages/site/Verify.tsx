@@ -194,7 +194,7 @@ export default function Verify() {
           <span className="font-semibold">{p.electionName}</span>
         ),
     },
-    { key: 'category', header: 'Category', sortValue: (p) => p.categoryName, cell: (p) => p.categoryName },
+    { key: 'category', header: 'Category', sortValue: (p) => p.categoryName, mobileWide: true, cell: (p) => p.categoryName },
     { key: 'amount', header: 'Amount', sortValue: (p) => p.amount, className: 'whitespace-nowrap font-semibold', cell: (p) => ghs(p.amount) },
     {
       key: 'status',

@@ -10,11 +10,11 @@ export default function AuthShell({ mode, children }: { mode?: 'login' | 'regist
     `flex min-h-11 flex-1 items-center justify-center rounded-[9px] text-[15px] font-semibold ${active ? 'bg-white text-ink shadow-sm' : 'text-muted'}`
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      <section className="flex flex-1 flex-col justify-between gap-12 bg-ink p-8 text-[#e8efeb] lg:p-14">
+      <section className="flex shrink-0 flex-col justify-between gap-12 bg-ink px-5 py-5 text-[#e8efeb] lg:flex-1 lg:p-14">
         <Link to="/" aria-label="BallotPolls home" className="w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
           <Logo />
         </Link>
-        <div>
+        <div className="hidden lg:block">
           <h2 className="max-w-lg font-display text-4xl font-bold leading-[1.05] tracking-tight lg:text-[52px]">
             Run an election anyone can vote in from a basic phone.
           </h2>
@@ -32,7 +32,7 @@ export default function AuthShell({ mode, children }: { mode?: 'login' | 'regist
           ))}
         </div>
       </section>
-      <section className="flex flex-1 items-center justify-center px-6 py-12">
+      <section className="flex flex-1 items-start justify-center px-5 py-8 sm:px-6 lg:items-center lg:py-12">
         <div className="w-full max-w-md">
           {mode && (
             <div role="tablist" className="mb-7 flex gap-1 rounded-xl bg-[#e6ede9] p-1">

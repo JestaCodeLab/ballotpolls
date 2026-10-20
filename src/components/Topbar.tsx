@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { CheckCheck } from 'lucide-react'
+import { CheckCheck, Menu } from 'lucide-react'
 import { useAuth } from '../store/auth'
 import { useNotifications } from '../store/notifications'
 import { useDismiss } from '../lib/useDismiss'
@@ -36,15 +36,21 @@ const breadcrumb = (path: string): { section: string; to?: string; page?: string
 
 const POLL_MS = 60_000
 
-export default function Topbar() {
+export default function Topbar({ onMenu }: { onMenu?: () => void }) {
   const { pathname } = useLocation()
   const org = useAuth((s) => s.user?.organisation?.name)
   const crumb = breadcrumb(pathname)
 
   return (
-    <div className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-4 border-b border-line bg-white px-5 md:px-10">
-      <nav aria-label="Breadcrumb" className="min-w-0 truncate text-sm text-muted">
-        {org} <span aria-hidden="true">/</span>{' '}
+    <div className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-2 border-b border-line bg-white px-3 sm:gap-4 md:px-10">
+      {/* On phones the sidebar is a drawer, opened from here. */}
+      <button type="button" onClick={onMenu} aria-label="Open menu" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] text-ink hover:bg-ground md:hidden">
+        <Menu size={22} strokeWidth={1.8} aria-hidden="true" />
+      </button>
+      <nav aria-label="Breadcrumb" className="min-w-0 flex-1 truncate text-sm text-muted">
+        <span className="hidden sm:inline">
+          {org} <span aria-hidden="true">/</span>{' '}
+        </span>
         {crumb.page ? (
           <>
             <Link to={crumb.to!} className="hover:text-ink hover:underline">

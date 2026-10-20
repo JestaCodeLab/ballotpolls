@@ -82,6 +82,8 @@ export default function ProductTour() {
     const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
     if (!el) return setBox(null)
     const r = el.getBoundingClientRect()
+    // On phones the sidebar is not on screen, so there is nothing to outline: the card is simply shown centred.
+    if (r.width === 0 && r.height === 0) return setBox(null)
     setBox({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
   }, [step.target])
 

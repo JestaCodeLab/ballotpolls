@@ -109,7 +109,7 @@ export default function Withdrawals() {
               <div className={`text-sm ${s.hero ? 'text-[#b7c7bf]' : 'text-muted'}`}>{s.label}</div>
               <StatIcon icon={s.icon} onDark={s.hero} />
             </div>
-            <div className="mt-1 font-display text-3xl font-bold tracking-tight">{s.value === undefined ? '–' : ghs(s.value)}</div>
+            <div className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">{s.value === undefined ? '–' : ghs(s.value)}</div>
             <div className={`mt-1 text-[13px] ${s.hero ? 'text-accent' : 'text-muted'}`}>{s.note}</div>
           </div>
         ))}
@@ -200,7 +200,7 @@ export default function Withdrawals() {
             Requests you make will show up here with their status.
           </EmptyState>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="bg-ground text-left text-sm text-[#3f4f49]">
@@ -237,6 +237,29 @@ export default function Withdrawals() {
               </tbody>
             </table>
           </div>
+        )}
+        {items.length > 0 && (
+          <ul className="divide-y divide-[#eef2f0] md:hidden">
+            {items.map((w) => (
+              <li key={w.id} className="px-3 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="font-semibold tabular-nums">{w.reference}</div>
+                  <div className="font-semibold tabular-nums">{ghs(w.amount)}</div>
+                </div>
+                <div className="mt-1 text-sm text-muted">{formatDateTime(w.createdAt)} · {w.payoutPhone}</div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS[w.status].cls}`}>{STATUS[w.status].label}</span>
+                  {w.status === 'awaiting_code' ? (
+                    <button type="button" onClick={() => setConfirming(w)} className="min-h-9 text-xs font-semibold text-brand hover:underline">
+                      Enter code
+                    </button>
+                  ) : (
+                    sub(w) && <span className="text-xs text-muted">{sub(w)}</span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
 

@@ -207,9 +207,12 @@ export default function ElectionDetail() {
                         {mine.map((n) => (
                           <li key={n.id} className="flex min-h-[52px] items-center gap-3 border-t border-[#eef2f0]">
                             <Avatar name={n.candidate.name} src={n.candidate.imageUrl} size={36} />
-                            <span className="min-w-0 flex-1 truncate text-[15px]">{n.candidate.name}</span>
-                            {!upcoming && <span className="text-sm text-muted">{n.voteCount.toLocaleString()} votes</span>}
-                            <span className="text-[13px] text-muted">Code</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[15px]">{n.candidate.name}</span>
+                              {!upcoming && <span className="block text-xs text-muted sm:hidden">{n.voteCount.toLocaleString()} votes</span>}
+                            </span>
+                            {!upcoming && <span className="hidden text-sm text-muted sm:inline">{n.voteCount.toLocaleString()} votes</span>}
+                            <span className="hidden text-[13px] text-muted sm:inline">Code</span>
                             <span className="rounded-lg bg-ground px-2.5 py-1 text-[15px] font-bold">{codeLabel(n.code)}</span>
                             {upcoming && (
                               <button onClick={() => removeNomination(n)} aria-label={`Remove ${n.candidate.name}`} className="flex h-11 w-11 items-center justify-center rounded-[10px] text-danger hover:bg-red-50">

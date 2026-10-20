@@ -220,19 +220,21 @@ export default function Categories() {
           </Button>
         }
       />
-      <section aria-label="Category totals" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section aria-label="Category totals" className="grid grid-cols-3 gap-2.5 sm:gap-4">
         {[
           { label: 'Total categories', value: items.length, note: 'Including sub-categories', icon: Tags },
           { label: 'Categories', value: tree.length, note: 'Top level', icon: Folder },
           { label: 'Sub-categories', value: items.length - tree.length, note: `Across ${parentsWithSubs.length} categor${parentsWithSubs.length === 1 ? 'y' : 'ies'}`, icon: ListTree },
         ].map((t) => (
-          <Card key={t.label} className="p-5">
+          <Card key={t.label} className="p-3 sm:p-5">
             <div className="flex items-start justify-between gap-3">
-              <div className="text-sm text-muted">{t.label}</div>
-              <StatIcon icon={t.icon} />
+              <div className="text-xs text-muted sm:text-sm">{t.label}</div>
+              <span className="hidden sm:block">
+                <StatIcon icon={t.icon} />
+              </span>
             </div>
-            <div className="mt-1 font-display text-3xl font-bold tracking-tight">{loaded ? t.value.toLocaleString() : <Skeleton className="h-9 w-14" />}</div>
-            <div className="mt-0.5 text-[13px] text-muted">{loaded ? t.note : ' '}</div>
+            <div className="mt-1 font-display text-2xl font-bold tracking-tight sm:text-3xl">{loaded ? t.value.toLocaleString() : <Skeleton className="h-9 w-14" />}</div>
+            <div className="mt-0.5 hidden text-[13px] text-muted sm:block">{loaded ? t.note : ' '}</div>
           </Card>
         ))}
       </section>
