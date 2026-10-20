@@ -7,11 +7,9 @@ Keep the important part (logo and headline) in the middle 80%, because some apps
 
 | File | Used for |
 | --- | --- |
-| `default.png` | Any page without its own picture. |
-| `home.jpg` | The home page (`/`). Made from the home banner. |
-| `events.png` | The elections list (`/events`). |
+| `banner.jpg` | Every marketing page: home, elections list, verify, and the default for anything else. |
 
-The files here now are plain placeholders. Replace them with real artwork using the same file names.
+To change it, replace `banner.jpg` (keep the name).
 
 **Election pages need nothing in this folder.** Each election page, and each candidate page inside it, uses that election's own
 cover image as its share preview.

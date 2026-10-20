@@ -1,7 +1,71 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://api.ballotpolls.com/api/:path*" },
-    { "source": "/sitemap.xml", "destination": "https://api.ballotpolls.com/sitemap.xml" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://api.ballotpolls.com/api/:path*"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://api.ballotpolls.com/sitemap.xml"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|[Tt]elegram[Bb]ot|[Dd]iscordbot|Pinterest|Embedly|[Rr]eddit[Bb]ot).*"
+        }
+      ],
+      "destination": "https://api.ballotpolls.com/api/share/home"
+    },
+    {
+      "source": "/events",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|[Tt]elegram[Bb]ot|[Dd]iscordbot|Pinterest|Embedly|[Rr]eddit[Bb]ot).*"
+        }
+      ],
+      "destination": "https://api.ballotpolls.com/api/share/events"
+    },
+    {
+      "source": "/verify",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|[Tt]elegram[Bb]ot|[Dd]iscordbot|Pinterest|Embedly|[Rr]eddit[Bb]ot).*"
+        }
+      ],
+      "destination": "https://api.ballotpolls.com/api/share/verify"
+    },
+    {
+      "source": "/events/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|[Tt]elegram[Bb]ot|[Dd]iscordbot|Pinterest|Embedly|[Rr]eddit[Bb]ot).*"
+        }
+      ],
+      "destination": "https://api.ballotpolls.com/api/share/events/:slug"
+    },
+    {
+      "source": "/events/:slug/candidates/:cslug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*([Ww]hats[Aa]pp|facebookexternalhit|[Ff]acebot|[Tt]witterbot|[Ll]inked[Ii]n[Bb]ot|[Ss]lackbot|[Tt]elegram[Bb]ot|[Dd]iscordbot|Pinterest|Embedly|[Rr]eddit[Bb]ot).*"
+        }
+      ],
+      "destination": "https://api.ballotpolls.com/api/share/events/:slug/candidates/:cslug"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

@@ -14,7 +14,7 @@ export const WHATSAPP_URL = whatsappDigits ? `https://wa.me/${whatsappDigits}` :
 export const SHORTCODE = import.meta.env.VITE_USSD_SHORTCODE as string | undefined
 
 // Share-preview pictures live in public/og (see the README there). Pages without their own picture use the default.
-const OG_FILES = { default: 'default.png', home: 'home.jpg', events: 'events.png' } as const
+const OG_FILES = { default: 'banner.jpg', home: 'banner.jpg', events: 'banner.jpg' } as const
 export const ogImage = (name: keyof typeof OG_FILES) => absoluteUrl(`/og/${OG_FILES[name]}`)
 
 export const DEFAULT_DESCRIPTION =
