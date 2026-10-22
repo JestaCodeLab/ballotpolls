@@ -4,6 +4,20 @@ import { AlignLeft, BarChart3, LayoutGrid, Settings, User, Vote, Wallet, X } fro
 import { useAuth } from '../store/auth'
 import Topbar from './Topbar'
 import ProductTour from './ProductTour'
+import { useDashboardTitle } from '../lib/useDashboardTitle'
+
+// Tab titles for the organiser dashboard.
+const TITLES: [string, string][] = [
+  ['/dashboard', 'Overview'],
+  ['/elections', 'Elections'],
+  ['/elections/new', 'New election'],
+  ['/candidates', 'Candidates'],
+  ['/candidates/new', 'Add candidate'],
+  ['/categories', 'Categories'],
+  ['/results', 'Live results'],
+  ['/withdrawals', 'Withdrawals'],
+  ['/settings', 'Settings'],
+]
 
 const links = [
   { to: '/', label: 'Overview', icon: LayoutGrid, end: true, tour: 'overview' },
@@ -60,6 +74,7 @@ function SidebarBody({ onNavigate, tour }: { onNavigate?: () => void; tour?: boo
 export default function Layout() {
   const showTour = useAuth((s) => s.user?.showTour)
   const { pathname } = useLocation()
+  useDashboardTitle(TITLES)
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Going to another page closes the phone menu. While it is open, Escape closes it and the page behind does not scroll.

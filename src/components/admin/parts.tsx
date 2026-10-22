@@ -2,20 +2,31 @@ import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { api, type PaymentStatus } from '../../lib/api'
 import { toast } from '../../store/toast'
+import type { PaginationProps } from '../Pagination'
 
-// Loads a list from /admin/<path> and again, after a short pause, whenever the search words or filters change.
+// Loads one page of a list from /admin/<path>, and again, after a short pause, whenever the search words, the filters or
+// the page change. The server answers { items, total, page, pageSize }; `pagination` is ready for DataTable's
+// `serverPagination`. A new search or filter goes back to page 1.
 export function useAdminList<T>(path: string, params: Record<string, string | undefined> = {}) {
   const [rows, setRows] = useState<T[]>([])
+  const [total, setTotal] = useState(0)
   const [loaded, setLoaded] = useState(false)
   const [version, setVersion] = useState(0)
   const key = JSON.stringify(params)
+  const [paging, setPaging] = useState({ key, page: 1, size: 10 })
+  const page = paging.key === key ? paging.page : 1
+  const size = paging.size
 
   useEffect(() => {
     let current = true
     const t = setTimeout(() => {
       api
-        .get<T[]>(`/admin/${path}`, { params })
-        .then((r) => current && setRows(r.data))
+        .get<{ items: T[]; total: number }>(`/admin/${path}`, { params: { ...params, page, pageSize: size } })
+        .then((r) => {
+          if (!current) return
+          setRows(r.data.items)
+          setTotal(r.data.total)
+        })
         .catch((e) => current && toast.fromError(e))
         .finally(() => current && setLoaded(true))
     }, 250)
@@ -25,9 +36,16 @@ export function useAdminList<T>(path: string, params: Record<string, string | un
     }
     // `key` stands for `params`, which is a new object on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, key, version])
+  }, [path, key, page, size, version])
 
-  return { rows, loaded, setRows, reload: () => setVersion((v) => v + 1) }
+  const pagination: PaginationProps = {
+    page,
+    pageSize: size,
+    total,
+    onPage: (n) => setPaging({ key, page: n, size }),
+    onPageSize: (n) => setPaging({ key, page: 1, size: n }),
+  }
+  return { rows, total, loaded, pagination, setRows, reload: () => setVersion((v) => v + 1) }
 }
 
 export function SearchBox({ value, onChange, label, placeholder }: { value: string; onChange: (v: string) => void; label: string; placeholder: string }) {

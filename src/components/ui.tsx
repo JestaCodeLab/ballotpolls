@@ -224,7 +224,7 @@ const iconTones = {
   danger: 'border-line text-muted hover:border-danger hover:bg-danger hover:text-white focus-visible:border-danger focus-visible:bg-danger focus-visible:text-white',
   brand: 'border-line text-brand hover:border-brand/40 hover:bg-brand-tint',
 }
-const iconBase = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-white'
+const iconBase = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border bg-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:bg-white disabled:hover:text-muted'
 
 export function IconButton({
   label,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Wallet } from 'lucide-react'
+import { Banknote, Check, Wallet, X } from 'lucide-react'
 import { api, errorMessage, type AdminWithdrawal } from '../../lib/api'
-import { Button, EmptyState, PageHeader, Textarea } from '../../components/ui'
+import { Button, EmptyState, IconButton, PageHeader, Textarea } from '../../components/ui'
 import Modal from '../../components/Modal'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
@@ -21,15 +21,22 @@ const TABS: { id: Tab; label: string }[] = [
 export default function AdminWithdrawals() {
   const [tab, setTab] = useState<Tab>('pending')
   const [rows, setRows] = useState<AdminWithdrawal[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<AdminWithdrawal | null>(null)
   const [reason, setReason] = useState('')
 
-  const load = useCallback(async (t: Tab) => {
+  const load = useCallback(async (t: Tab, p: number, size: number) => {
     setLoaded(false)
     try {
-      setRows((await api.get<AdminWithdrawal[]>('/admin/withdrawals', { params: { status: t } })).data)
+      const { data } = await api.get<{ items: AdminWithdrawal[]; total: number }>('/admin/withdrawals', { params: { status: t, page: p, pageSize: size } })
+      // The last row of a page was just handled: step back instead of showing an empty page.
+      if (data.items.length === 0 && p > 1) return setPage(p - 1)
+      setRows(data.items)
+      setTotal(data.total)
     } catch (e) {
       toast.fromError(e)
     } finally {
@@ -38,8 +45,8 @@ export default function AdminWithdrawals() {
   }, [])
 
   useEffect(() => {
-    load(tab)
-  }, [tab, load])
+    load(tab, page, pageSize)
+  }, [tab, page, pageSize, load])
 
   const act = async (w: AdminWithdrawal, action: 'approve' | 'release' | 'reject', body: object = {}) => {
     setBusy(w.id)
@@ -48,10 +55,10 @@ export default function AdminWithdrawals() {
       toast.success(action === 'approve' ? 'Withdrawal approved' : action === 'release' ? 'Marked as released' : 'Withdrawal rejected')
       setRejecting(null)
       setReason('')
-      await load(tab)
+      await load(tab, page, pageSize)
     } catch (e) {
       toast.error(errorMessage(e))
-      await load(tab)
+      await load(tab, page, pageSize)
     } finally {
       setBusy(null)
     }
@@ -81,18 +88,18 @@ export default function AdminWithdrawals() {
             hideHeader: true,
             align: 'right' as const,
             cell: (w: AdminWithdrawal) => (
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex justify-end gap-2">
                 {w.status === 'pending' && (
-                  <Button variant="secondary" disabled={busy === w.id} onClick={() => act(w, 'approve')} className="min-h-9 px-4 text-sm">
-                    Approve
-                  </Button>
+                  <IconButton label={`Approve ${w.reference}`} tone="brand" disabled={busy === w.id} onClick={() => act(w, 'approve')}>
+                    <Check size={17} strokeWidth={2} aria-hidden="true" />
+                  </IconButton>
                 )}
-                <Button disabled={busy === w.id} onClick={() => release(w)} className="min-h-9 px-4 text-sm">
-                  Mark released
-                </Button>
-                <Button variant="danger" disabled={busy === w.id} onClick={() => setRejecting(w)} className="min-h-9 px-4 text-sm">
-                  Reject
-                </Button>
+                <IconButton label={`Mark ${w.reference} as released`} tone="brand" disabled={busy === w.id} onClick={() => release(w)}>
+                  <Banknote size={17} strokeWidth={1.8} aria-hidden="true" />
+                </IconButton>
+                <IconButton label={`Reject ${w.reference}`} tone="danger" disabled={busy === w.id} onClick={() => setRejecting(w)}>
+                  <X size={17} strokeWidth={2} aria-hidden="true" />
+                </IconButton>
               </div>
             ),
           },
@@ -110,7 +117,7 @@ export default function AdminWithdrawals() {
             role="tab"
             type="button"
             aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => { setTab(t.id); setPage(1) }}
             className={`min-h-10 rounded-full px-4 text-sm font-semibold ${tab === t.id ? 'bg-ink text-white' : 'border border-line bg-white hover:bg-ground'}`}
           >
             {t.label}
@@ -120,12 +127,12 @@ export default function AdminWithdrawals() {
 
       {!loaded ? (
         <TableViewSkeleton />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={Wallet} title={`No ${tab} withdrawals`}>
           {tab === 'pending' ? 'You are all caught up.' : 'Nothing here yet.'}
         </EmptyState>
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(w) => w.id} caption={`${tab} withdrawals`} initialSort={{ key: 'when', dir: 'asc' }} minWidth={920} />
+        <DataTable columns={columns} rows={rows} rowKey={(w) => w.id} caption={`${tab} withdrawals`} noun="withdrawals" serverPagination={{ page, pageSize, total, onPage: setPage, onPageSize: (n) => { setPageSize(n); setPage(1) } }} minWidth={920} />
       )}
 
       {rejecting && (

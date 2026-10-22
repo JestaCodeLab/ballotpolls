@@ -21,7 +21,7 @@ const columns: Column<AdminElection>[] = [
 
 export default function AdminElections() {
   const [q, setQ] = useState('')
-  const { rows, loaded } = useAdminList<AdminElection>('elections', { q: q.trim() || undefined })
+  const { rows, total, loaded, pagination } = useAdminList<AdminElection>('elections', { q: q.trim() || undefined })
 
   return (
     <>
@@ -29,12 +29,12 @@ export default function AdminElections() {
       <SearchBox value={q} onChange={setQ} label="Search elections" placeholder="Search by name or event code" />
       {!loaded ? (
         <TableViewSkeleton />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={CalendarDays} title={q ? 'No match' : 'No elections yet'}>
           {q ? 'Try a different name or event code.' : 'Elections appear here once organisations create them.'}
         </EmptyState>
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(e) => e.id} caption="Elections" initialSort={{ key: 'closes', dir: 'desc' }} minWidth={980} />
+        <DataTable columns={columns} rows={rows} rowKey={(e) => e.id} caption="Elections" serverPagination={pagination} noun="elections" minWidth={980} />
       )}
     </>
   )

@@ -6,6 +6,8 @@ import { toast } from '../store/toast'
 import { formatDateTime, ghs } from '../lib/format'
 import { formatPhone, toLocalPhone } from '../lib/phone'
 import { Button, Card, EmptyState, Input, PageHeader, StatIcon } from '../components/ui'
+import Pagination from '../components/Pagination'
+import { usePaged } from '../lib/usePaged'
 import { firstProblem } from '../lib/validate'
 import { Loading, StatCardsSkeleton, TableSkeleton } from '../components/Loading'
 
@@ -37,6 +39,7 @@ export default function Withdrawals() {
   const user = useAuth((s) => s.user)!
   const [balance, setBalance] = useState<WithdrawalBalance | null>(null)
   const [items, setItems] = useState<Withdrawal[]>([])
+  const list = usePaged(items)
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -212,7 +215,7 @@ export default function Withdrawals() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((w) => (
+                {list.pageItems.map((w) => (
                   <tr key={w.id} className="border-t border-[#eef2f0]">
                     <td className="px-3 py-3.5 font-semibold tabular-nums">{w.reference}</td>
                     <td className="px-3 py-3.5 text-muted">{formatDateTime(w.createdAt)}</td>
@@ -240,7 +243,7 @@ export default function Withdrawals() {
         )}
         {items.length > 0 && (
           <ul className="divide-y divide-[#eef2f0] md:hidden">
-            {items.map((w) => (
+            {list.pageItems.map((w) => (
               <li key={w.id} className="px-3 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="font-semibold tabular-nums">{w.reference}</div>
@@ -260,6 +263,11 @@ export default function Withdrawals() {
               </li>
             ))}
           </ul>
+        )}
+        {items.length > 0 && (
+          <div className="border-t border-line">
+            <Pagination {...list.pagination} noun="withdrawals" />
+          </div>
         )}
       </Card>
 

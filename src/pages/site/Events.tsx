@@ -4,6 +4,8 @@ import { api, type ElectionStatus, type PublicElection } from '../../lib/api'
 import { useSeo } from '../../lib/useSeo'
 import { absoluteUrl, ogImage } from '../../lib/site'
 import { EmptyState } from '../../components/ui'
+import Pagination from '../../components/Pagination'
+import { usePaged } from '../../lib/usePaged'
 import { EventCard, EventGridSkeleton, Section } from '../../components/site/parts'
 
 type Filter = 'all' | ElectionStatus
@@ -46,6 +48,7 @@ export default function Events() {
   }, [items, query])
   const count = (f: Filter) => (f === 'all' ? matches.length : matches.filter((e) => e.status === f).length)
   const shown = filter === 'all' ? matches : matches.filter((e) => e.status === filter)
+  const paged = usePaged(shown, 12, [12, 24, 48])
 
   return (
     <>
@@ -87,11 +90,16 @@ export default function Events() {
         {items === null ? (
           <EventGridSkeleton count={6} />
         ) : shown.length ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.map((e) => (
-              <EventCard key={e.slug} e={e} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {paged.pageItems.map((e) => (
+                <EventCard key={e.slug} e={e} />
+              ))}
+            </div>
+            <div className="mt-6 rounded-2xl border border-line bg-white">
+              <Pagination {...paged.pagination} noun="elections" />
+            </div>
+          </>
         ) : (
           <EmptyState icon={SearchX} title={items.length ? 'No elections match' : 'No elections yet'}>
             {items.length ? 'Check the spelling, try another status, or search by the event code.' : 'Elections appear here once organisers publish them.'}

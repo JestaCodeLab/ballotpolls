@@ -4,6 +4,8 @@ import { api, errorMessage, type BulkDeleteResult, type Election, type ElectionS
 import { reportBulkDelete } from '../lib/bulk'
 import { Eye, Pencil, Search, SearchX, Trash2, Vote } from 'lucide-react'
 import { EmptyState, IconButton, IconLink, LinkButton, PageHeader, StatusChip } from '../components/ui'
+import Pagination from '../components/Pagination'
+import { usePaged } from '../lib/usePaged'
 import { formatDateTime, ghs } from '../lib/format'
 import { toast } from '../store/toast'
 import { confirmDelete } from '../store/confirm'
@@ -67,6 +69,7 @@ export default function Elections() {
     [matches],
   )
   const shown = filter === 'all' ? matches : matches.filter((e) => e.status === filter)
+  const cards = usePaged(shown)
 
   const bulkDelete = async (rows: Election[]) => {
     try {
@@ -173,7 +176,7 @@ export default function Elections() {
             }}
           />
         )}
-        {(view === 'cards' ? shown : []).map((e) => (
+        {(view === 'cards' ? cards.pageItems : []).map((e) => (
           <article key={e.id} className="flex flex-wrap items-center gap-x-8 gap-y-4 rounded-[14px] border border-line bg-white px-6 py-5">
             <ElectionCover src={e.coverImageUrl} name={e.name} className="h-[68px] w-[120px] rounded-lg" />
             <div className="min-w-[240px] flex-[2]">
@@ -193,6 +196,11 @@ export default function Elections() {
             <ElectionActions e={e} onDelete={remove} />
           </article>
         ))}
+        {loaded && view === 'cards' && shown.length > 0 && (
+          <div className="rounded-[14px] border border-line bg-white">
+            <Pagination {...cards.pagination} noun="elections" />
+          </div>
+        )}
         {loaded && shown.length === 0 &&
           (items.length ? (
             <EmptyState icon={SearchX} title={query.trim() ? 'No elections match your search' : 'No elections match this filter'}>

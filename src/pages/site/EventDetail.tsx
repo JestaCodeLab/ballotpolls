@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CalendarDays, Clock } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Clock } from 'lucide-react'
 import { api, type PublicElectionDetail } from '../../lib/api'
 import { useSeo } from '../../lib/useSeo'
 import { SHORTCODE, SITE_NAME, absoluteUrl } from '../../lib/site'
@@ -95,9 +95,15 @@ export default function EventDetail() {
 
   return (
     <Section className="pb-[72px] pt-8">
-      <nav aria-label="Breadcrumb" className="text-sm text-muted">
-        <Link to="/events" className="hover:underline">Elections</Link> <span aria-hidden="true">/</span> <strong aria-current="page" className="font-semibold text-ink">{e.name}</strong>
-      </nav>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <Link to="/events" className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-line bg-white px-4 text-[15px] font-semibold text-ink hover:bg-ground">
+          <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
+          Back to elections
+        </Link>
+        <nav aria-label="Breadcrumb" className="ml-auto text-sm text-muted">
+          <Link to="/events" className="hover:underline">Elections</Link> <span aria-hidden="true">/</span> <strong aria-current="page" className="font-semibold text-ink">{e.name}</strong>
+        </nav>
+      </div>
 
       <ElectionCover src={e.coverImageUrl} name={e.name} className="mt-[18px] h-[220px] w-full rounded-[20px] md:h-[360px]" />
 

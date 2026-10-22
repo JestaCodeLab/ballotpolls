@@ -4,6 +4,8 @@ import { api, type BulkDeleteResult, type Candidate } from '../lib/api'
 import { reportBulkDelete } from '../lib/bulk'
 import { Pencil, SearchX, Trash2, Users } from 'lucide-react'
 import { Avatar, EmptyState, IconButton, IconLink, LinkButton, PageHeader, Select } from '../components/ui'
+import Pagination from '../components/Pagination'
+import { usePaged } from '../lib/usePaged'
 import DataTable, { type Column } from '../components/DataTable'
 import ViewToggle from '../components/ViewToggle'
 import { useViewMode } from '../lib/useViewMode'
@@ -37,6 +39,8 @@ export default function Candidates() {
   const shown = items.filter(
     (c) => c.name.toLowerCase().includes(query.trim().toLowerCase()) && (!category || (c.categories ?? []).includes(category)),
   )
+
+  const grid = usePaged(shown, 12, [12, 24, 48, 96])
 
   const remove = async (c: Candidate) => {
     const ok = await confirmDelete({
@@ -150,7 +154,7 @@ export default function Candidates() {
           }}
         />}
       <section className={`grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 ${view === 'table' ? 'hidden' : ''}`}>
-        {shown.map((c) => (
+        {(view === 'cards' ? grid.pageItems : []).map((c) => (
           <div key={c._id} className="group relative overflow-hidden rounded-[14px] border border-line bg-white transition-shadow hover:shadow-md">
           <Link to={`/candidates/${c._id}`} className="flex flex-col">
             {c.imageUrl ? (
@@ -184,6 +188,11 @@ export default function Candidates() {
           </div>
         ))}
       </section>
+      {loaded && view === 'cards' && shown.length > 0 && (
+        <div className="rounded-[14px] border border-line bg-white">
+          <Pagination {...grid.pagination} noun="candidates" />
+        </div>
+      )}
       {loaded && shown.length === 0 &&
         (items.length ? (
           <EmptyState icon={SearchX} title="No candidates match">

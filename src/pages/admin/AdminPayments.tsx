@@ -47,23 +47,23 @@ const FILTERS: { value: string; label: string }[] = [
 export default function AdminPayments() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
-  const { rows, loaded } = useAdminList<AdminPayment>('payments', { q: q.trim() || undefined, status: (status as PaymentStatus) || undefined })
+  const { rows, total, loaded, pagination } = useAdminList<AdminPayment>('payments', { q: q.trim() || undefined, status: (status as PaymentStatus) || undefined })
 
   return (
     <>
-      <PageHeader title="Payments" subtitle="The latest 100 vote payments. Search to find a specific one." />
+      <PageHeader title="Payments" subtitle="Every vote payment, newest first. Search to find a specific one." />
       <div className="flex flex-wrap items-end gap-3">
         <SearchBox value={q} onChange={setQ} label="Search payments" placeholder="Reference (BPL-…) or voter phone" />
         <Select label="Status" hideLabel value={status} options={FILTERS} onChange={setStatus} className="w-44" />
       </div>
       {!loaded ? (
         <TableViewSkeleton />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={CreditCard} title={q || status ? 'No match' : 'No payments yet'}>
           {q || status ? 'Try another reference, number or status.' : 'Payments appear here as voters pay.'}
         </EmptyState>
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(p) => p.id} caption="Payments" initialSort={{ key: 'when', dir: 'desc' }} minWidth={900} />
+        <DataTable columns={columns} rows={rows} rowKey={(p) => p.id} caption="Payments" serverPagination={pagination} noun="payments" minWidth={900} />
       )}
     </>
   )

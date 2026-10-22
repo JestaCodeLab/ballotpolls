@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Users } from 'lucide-react'
 import type { AdminUser } from '../../lib/api'
 import { EmptyState, PageHeader } from '../../components/ui'
@@ -26,7 +26,8 @@ const columns: Column<AdminUser>[] = [
 
 export default function AdminUsers() {
   const [q, setQ] = useState('')
-  const { rows, loaded } = useAdminList<AdminUser>('users', { q: q.trim() || undefined })
+  const navigate = useNavigate()
+  const { rows, total, loaded, pagination } = useAdminList<AdminUser>('users', { q: q.trim() || undefined })
 
   return (
     <>
@@ -34,12 +35,12 @@ export default function AdminUsers() {
       <SearchBox value={q} onChange={setQ} label="Search organisers" placeholder="Search by name, email or phone" />
       {!loaded ? (
         <TableViewSkeleton />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={Users} title={q ? 'No match' : 'No organisers yet'}>
           {q ? 'Try a different name, email or phone number.' : 'Organisers appear here when they register.'}
         </EmptyState>
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(u) => u.id} caption="Organisers" initialSort={{ key: 'joined', dir: 'desc' }} minWidth={900} />
+        <DataTable columns={columns} rows={rows} rowKey={(u) => u.id} caption="Organisers" onRowClick={(u) => navigate(`/admin/users/${u.id}`)} serverPagination={pagination} noun="organisers" minWidth={900} />
       )}
     </>
   )

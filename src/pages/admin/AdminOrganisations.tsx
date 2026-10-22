@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Ban, RotateCcw } from 'lucide-react'
 import { Building2 } from 'lucide-react'
 import { api, errorMessage, type AdminOrganisation } from '../../lib/api'
-import { Button, EmptyState, PageHeader } from '../../components/ui'
+import { EmptyState, IconButton, PageHeader } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
 import { OrgChip, SearchBox, useAdminList } from '../../components/admin/parts'
@@ -13,8 +14,9 @@ import { formatPhone, toLocalPhone } from '../../lib/phone'
 
 export default function AdminOrganisations() {
   const [q, setQ] = useState('')
-  const { rows, loaded, setRows } = useAdminList<AdminOrganisation>('organisations', { q: q.trim() || undefined })
+  const { rows, total, loaded, pagination, setRows } = useAdminList<AdminOrganisation>('organisations', { q: q.trim() || undefined })
   const [busy, setBusy] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const toggle = async (o: AdminOrganisation) => {
     const suspend = o.status === 'active'
@@ -58,9 +60,9 @@ export default function AdminOrganisations() {
       hideHeader: true,
       align: 'right',
       cell: (o) => (
-        <Button variant={o.status === 'active' ? 'secondary' : 'primary'} disabled={busy === o.id} onClick={() => toggle(o)} className="min-h-9 px-4 text-sm">
-          {o.status === 'active' ? 'Suspend' : 'Reactivate'}
-        </Button>
+        <IconButton label={o.status === 'active' ? `Suspend ${o.name}` : `Reactivate ${o.name}`} tone={o.status === 'active' ? 'danger' : 'brand'} disabled={busy === o.id} onClick={() => toggle(o)}>
+          {o.status === 'active' ? <Ban size={17} strokeWidth={1.8} aria-hidden="true" /> : <RotateCcw size={17} strokeWidth={1.8} aria-hidden="true" />}
+        </IconButton>
       ),
     },
   ]
@@ -71,12 +73,12 @@ export default function AdminOrganisations() {
       <SearchBox value={q} onChange={setQ} label="Search organisations" placeholder="Search by organisation name" />
       {!loaded ? (
         <TableViewSkeleton />
-      ) : rows.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState icon={Building2} title={q ? 'No match' : 'No organisations yet'}>
           {q ? 'Try a different name.' : 'Organisations appear here when someone registers.'}
         </EmptyState>
       ) : (
-        <DataTable columns={columns} rows={rows} rowKey={(o) => o.id} caption="Organisations" initialSort={{ key: 'joined', dir: 'desc' }} minWidth={980} />
+        <DataTable columns={columns} rows={rows} rowKey={(o) => o.id} caption="Organisations" onRowClick={(o) => navigate(`/admin/organisations/${o.id}`)} serverPagination={pagination} noun="organisations" minWidth={980} />
       )}
     </>
   )

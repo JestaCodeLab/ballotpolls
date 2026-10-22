@@ -1,7 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import { Button } from './ui'
 import { confirmDelete } from '../store/confirm'
 import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
+import Pagination, { type PaginationProps } from './Pagination'
+import { usePaged } from '../lib/usePaged'
 
 export interface Column<T> {
   key: string
@@ -49,20 +51,30 @@ interface Props<T> {
   rowClassName?: (row: T) => string
   // Below this width the table scrolls sideways inside its card instead of squeezing.
   minWidth?: number
+  // Makes each row a click target (e.g. open its details page). Clicks on links, buttons and fields inside the row
+  // keep their own job, and the row's main link is still the keyboard route.
+  onRowClick?: (row: T) => void
+  // Rows per page when the table pages itself in the browser. Default 10.
+  pageSize?: number
+  // For lists the server pages: `rows` is just the current page. Sorting by header is switched off then, because it
+  // could only reorder this page.
+  serverPagination?: PaginationProps
+  // What the rows are called in "Showing 1-10 of 124 records".
+  noun?: string
 }
 
 type Sort = { key: string; dir: 'asc' | 'desc' } | null
 
 // A reusable table in the app's style: sortable headers, hover rows, and a horizontal scroll on small screens.
 // Columns are described once; the table does the rest.
-export default function DataTable<T>({ columns, rows, rowKey, caption, initialSort, minWidth = 720, rowClassName, bulkDelete }: Props<T>) {
+export default function DataTable<T>({ columns, rows, rowKey, caption, initialSort, minWidth = 720, rowClassName, bulkDelete, onRowClick, pageSize, serverPagination, noun: recordsNoun }: Props<T>) {
   const [sort, setSort] = useState<Sort>(initialSort ?? null)
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sort?.key)
-    if (!sort || !col?.sortValue) return rows
+    if (serverPagination || !sort || !col?.sortValue) return rows
     const value = col.sortValue
     const dir = sort.dir === 'asc' ? 1 : -1
     return [...rows].sort((a, b) => {
@@ -71,13 +83,19 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
       const order = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' })
       return order * dir
     })
-  }, [rows, columns, sort])
+  }, [rows, columns, sort, serverPagination])
+
+  // Every table pages: the server's page when it sends one, otherwise slices of the sorted rows.
+  const local = usePaged(sorted, pageSize)
+  const view = serverPagination ? sorted : local.pageItems
+  const pagination = serverPagination ?? local.pagination
 
   // Only rows that are still in the table count, so a row removed elsewhere drops out of the selection by itself.
   const canSelect = (row: T) => bulkDelete?.canSelect?.(row) ?? true
-  const selectable = rows.filter(canSelect)
+  // "Select all" means this page's rows; what was ticked on other pages stays ticked.
+  const selectable = view.filter(canSelect)
   const selectedRows = rows.filter((r) => picked.has(rowKey(r)) && canSelect(r))
-  const allSelected = selectable.length > 0 && selectedRows.length === selectable.length
+  const allSelected = selectable.length > 0 && selectable.every((r) => picked.has(rowKey(r)))
   const someSelected = selectedRows.length > 0 && !allSelected
 
   const toggleRow = (row: T) =>
@@ -86,7 +104,12 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
       if (!next.delete(rowKey(row))) next.add(rowKey(row))
       return next
     })
-  const toggleAll = () => setPicked(allSelected ? new Set() : new Set(selectable.map(rowKey)))
+  const toggleAll = () =>
+    setPicked((s) => {
+      const next = new Set(s)
+      for (const r of selectable) allSelected ? next.delete(rowKey(r)) : next.add(rowKey(r))
+      return next
+    })
 
   const deleteSelected = async () => {
     if (!bulkDelete || !selectedRows.length) return
@@ -105,6 +128,11 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
     } finally {
       setDeleting(false)
     }
+  }
+
+  const rowClick = (row: T) => (e: MouseEvent) => {
+    if (!onRowClick || (e.target as HTMLElement).closest('a,button,input,label,select,textarea')) return
+    onRowClick(row)
   }
 
   const toggle = (key: string) => setSort((s) => (s?.key === key && s.dir === 'asc' ? { key, dir: 'desc' } : { key, dir: 'asc' }))
@@ -153,12 +181,12 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
                   <th
                     key={c.key}
                     scope="col"
-                    aria-sort={c.sortValue ? (active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+                    aria-sort={c.sortValue && !serverPagination ? (active ? (sort!.dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
                     className={`px-4 py-3.5 font-semibold ${c.align === 'right' ? 'text-right' : ''}`}
                   >
                     {c.hideHeader ? (
                       <span className="sr-only">{c.header}</span>
-                    ) : c.sortValue ? (
+                    ) : c.sortValue && !serverPagination ? (
                       <button
                         type="button"
                         onClick={() => toggle(c.key)}
@@ -180,10 +208,11 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => (
+            {view.map((row) => (
               <tr
                 key={rowKey(row)}
-                className={`border-t border-line hover:bg-ground/50 ${picked.has(rowKey(row)) && canSelect(row) ? 'bg-brand-tint/40' : ''} ${rowClassName?.(row) ?? ''}`}
+                onClick={onRowClick ? rowClick(row) : undefined}
+                className={`border-t border-line hover:bg-ground/50 ${onRowClick ? 'cursor-pointer' : ''} ${picked.has(rowKey(row)) && canSelect(row) ? 'bg-brand-tint/40' : ''} ${rowClassName?.(row) ?? ''}`}
               >
                 {bulkDelete && (
                   <td className="w-12 px-2 py-2 align-middle">
@@ -229,14 +258,14 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
             </label>
           </li>
         )}
-        {sorted.map((row) => {
+        {view.map((row) => {
           const [first, ...rest] = columns
           const isActions = (c: Column<T>) => c.key === 'actions' || c.hideHeader
           const fields = rest.filter((c) => !isActions(c) && !c.mobileHide)
           const actions = rest.filter(isActions)
           const chosen = picked.has(rowKey(row)) && canSelect(row)
           return (
-            <li key={rowKey(row)} className={`px-4 py-4 ${chosen ? 'bg-brand-tint/40' : ''} ${rowClassName?.(row) ?? ''}`}>
+            <li key={rowKey(row)} onClick={onRowClick ? rowClick(row) : undefined} className={`px-4 py-4 ${onRowClick ? 'cursor-pointer' : ''} ${chosen ? 'bg-brand-tint/40' : ''} ${rowClassName?.(row) ?? ''}`}>
               <div className="flex items-start gap-3">
                 {bulkDelete && (
                   <label className="-ml-2 -mt-1 flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center" title={canSelect(row) ? undefined : bulkDelete.disabledReason}>
@@ -267,6 +296,11 @@ export default function DataTable<T>({ columns, rows, rowKey, caption, initialSo
           )
         })}
       </ul>
+      {pagination.total > 0 && (
+        <div className="border-t border-line">
+          <Pagination {...pagination} noun={recordsNoun} />
+        </div>
+      )}
     </div>
   )
 }

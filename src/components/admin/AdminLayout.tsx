@@ -4,6 +4,16 @@ import { Building2, CalendarDays, CreditCard, LayoutGrid, LogOut, Menu, Users, W
 import { useAuth } from '../../store/auth'
 import { Logo } from '../Layout'
 import { Avatar } from '../ui'
+import { useDashboardTitle } from '../../lib/useDashboardTitle'
+
+const TITLES: [string, string][] = [
+  ['/admin', 'Overview'],
+  ['/admin/organisations', 'Organisations'],
+  ['/admin/users', 'Organisers'],
+  ['/admin/elections', 'Elections'],
+  ['/admin/payments', 'Payments'],
+  ['/admin/withdrawals', 'Withdrawals'],
+]
 
 const links = [
   { to: '/admin', label: 'Overview', icon: LayoutGrid, end: true },
@@ -44,6 +54,7 @@ export default function AdminLayout() {
   const logout = useAuth((s) => s.logout)
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  useDashboardTitle(TITLES, 'BallotPolls Admin')
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {

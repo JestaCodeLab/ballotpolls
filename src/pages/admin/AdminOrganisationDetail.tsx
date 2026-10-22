@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElectionRow, type AdminOrganisationDetail } from '../../lib/api'
-import { Button, Card, EmptyState, Input, LinkButton, PageHeader, Select, StatusChip } from '../../components/ui'
+import { Button, Card, EmptyState, IconButton, IconLink, Input, PageHeader, Select, StatusChip } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { DetailPageSkeleton } from '../../components/Loading'
 import { OrgChip } from '../../components/admin/parts'
@@ -101,12 +101,14 @@ export default function AdminOrganisationDetailPage() {
       align: 'right',
       cell: (e) => (
         <div className="flex justify-end gap-2">
-          <LinkButton to={`/admin/elections/${e.id}`} variant="secondary" className="min-h-9 px-4 text-sm">
-            Edit
-          </LinkButton>
-          <Button variant="secondary" disabled={e.locked} title={e.locked ? 'It has payments, so it cannot be deleted.' : undefined} onClick={() => removeElection(e)} className="min-h-9 px-4 text-sm text-danger">
-            Delete
-          </Button>
+          <IconLink to={`/admin/elections/${e.id}`} label={`Edit ${e.name}`}>
+            <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
+          </IconLink>
+          <span title={e.locked ? 'It has payments, so it cannot be deleted.' : undefined}>
+            <IconButton label={`Delete ${e.name}`} tone="danger" disabled={e.locked} onClick={() => removeElection(e)}>
+              <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+            </IconButton>
+          </span>
         </div>
       ),
     },
