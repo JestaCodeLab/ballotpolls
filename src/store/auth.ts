@@ -84,6 +84,11 @@ api.interceptors.response.use(undefined, (error: unknown) => {
     if (useAuth.getState().user) toast.info('Your session has ended', 'Please sign in again to continue.')
     useAuth.setState({ user: null })
   }
+  // An organisation suspended while someone is signed in: they are locked out of the dashboard straight away.
+  if (axios.isAxiosError(error) && error.response?.status === 403 && error.response.data?.code === 'ORG_SUSPENDED' && useAuth.getState().user) {
+    toast.error('Organisation suspended', 'Contact BallotPolls support.')
+    useAuth.setState({ user: null })
+  }
   // The server refuses org data until the phone number is verified: show the "verify your phone" screen.
   if (axios.isAxiosError(error) && error.response?.status === 403 && error.response.data?.code === 'PHONE_NOT_VERIFIED') {
     const user = useAuth.getState().user

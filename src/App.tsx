@@ -29,15 +29,37 @@ import CandidatePublic from './pages/site/CandidatePublic'
 import SiteNotFound from './pages/site/SiteNotFound'
 import Verify from './pages/site/Verify'
 import Settings from './pages/Settings'
+import AdminLayout from './components/admin/AdminLayout'
+import AdminOverview from './pages/admin/AdminOverview'
+import AdminOrganisations from './pages/admin/AdminOrganisations'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminElections from './pages/admin/AdminElections'
+import AdminPayments from './pages/admin/AdminPayments'
+import AdminWithdrawals from './pages/admin/AdminWithdrawals'
+import AdminOrganisationDetail from './pages/admin/AdminOrganisationDetail'
+import AdminOrganiserDetail from './pages/admin/AdminOrganiserDetail'
+import AdminElectionEdit from './pages/admin/AdminElectionEdit'
 
 function Protected() {
   const user = useAuth((s) => s.user)
   const loading = useAuth((s) => s.loading)
   if (loading) return <AppLoader />
   if (!user) return <Navigate to="/login" replace />
+  // The BallotPolls team has no organisation, so the organiser dashboard is not theirs: they work from /admin.
+  if (user.role === 'superadmin') return <Navigate to="/admin" replace />
   // Registered but has not entered the SMS code yet: nothing else in the app opens until they do.
   if (!user.phoneVerified) return <VerifyPhone />
   return <Layout />
+}
+
+// Only for super admins. Anyone else is sent to the pages they can use.
+function AdminOnly() {
+  const user = useAuth((s) => s.user)
+  const loading = useAuth((s) => s.loading)
+  if (loading) return <AppLoader />
+  if (!user) return <Navigate to="/login" replace />
+  if (user.role !== 'superadmin') return <Navigate to="/dashboard" replace />
+  return <AdminLayout />
 }
 
 export default function App() {
@@ -67,6 +89,17 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="admin" element={<AdminOnly />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="organisations" element={<AdminOrganisations />} />
+            <Route path="organisations/:id" element={<AdminOrganisationDetail />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:id" element={<AdminOrganiserDetail />} />
+            <Route path="elections" element={<AdminElections />} />
+            <Route path="elections/:id" element={<AdminElectionEdit />} />
+            <Route path="payments" element={<AdminPayments />} />
+            <Route path="withdrawals" element={<AdminWithdrawals />} />
+          </Route>
           <Route element={<Protected />}>
             <Route path="dashboard" element={<Overview />} />
             <Route path="elections" element={<Elections />} />
