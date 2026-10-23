@@ -4,6 +4,7 @@ import { api, errorMessage, type Category, type Election, type Nomination } from
 import { Download, FileSpreadsheet, ListChecks, Loader2, Plus, Tags } from 'lucide-react'
 import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatusChip } from '../components/ui'
 import { downloadFlyer } from '../lib/flyer'
+import CandidateModal from '../components/CandidateModal'
 import AddCandidatesModal from '../components/AddCandidatesModal'
 import ElectionSetupModal from '../components/ElectionSetupModal'
 import ImportCandidates, { type ImportResult } from '../components/ImportCandidates'
@@ -85,6 +86,8 @@ export default function ElectionDetail() {
 
   // The candidate's flyer, made in the browser and saved as a picture.
   const [flyerFor, setFlyerFor] = useState<string | null>(null)
+  // The candidate whose details window is open.
+  const [viewing, setViewing] = useState<{ n: Nomination; category: string } | null>(null)
   const makeFlyer = async (n: Nomination, categoryName: string) => {
     if (!election) return
     setFlyerFor(n.id)
@@ -233,13 +236,16 @@ export default function ElectionDetail() {
               {chosen.map((cat) => {
                 const mine = noms.filter((n) => n.categoryId === cat._id)
                 return (
-                  <li key={cat._id} className="border-t border-line py-3">
-                    <div className="flex flex-wrap items-center gap-3">
+                  <li key={cat._id} className="mt-4 first:mt-0">
+                    {/* The category is a banded header, so the sections are easy to tell apart down a long list. */}
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-l-[5px] border-line border-l-brand bg-brand-tint/60 px-4 py-2.5">
                       <div className="min-w-[180px] flex-1">
-                        <div className="text-base font-semibold">{cat.name}</div>
+                        <div className="font-display text-xl font-bold leading-tight">{cat.name}</div>
                         {cat.parentName && <div className="text-[13px] text-muted">{cat.parentName}</div>}
                       </div>
-                      {mine.length === 0 && <span className="text-[13px] text-muted">No candidates yet</span>}
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#0b5a43]">
+                        {mine.length === 0 ? 'No candidates yet' : `${mine.length} candidate${mine.length === 1 ? '' : 's'}`}
+                      </span>
                       {!closed && (
                         <Button variant="secondary" onClick={() => setAdding(cat._id)} className="min-h-11">
                           Add candidates
@@ -249,12 +255,15 @@ export default function ElectionDetail() {
                     {mine.length > 0 && (
                       <ul className="mt-2">
                         {mine.map((n) => (
-                          <li key={n.id} className="flex min-h-[52px] items-center gap-3 border-t border-[#eef2f0]">
-                            <Avatar name={n.candidate.name} src={n.candidate.imageUrl} size={36} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[15px]">{n.candidate.name}</span>
-                              {!upcoming && <span className="block text-xs text-muted sm:hidden">{n.voteCount.toLocaleString()} votes</span>}
-                            </span>
+                          <li key={n.id} className="flex min-h-[52px] items-center gap-3 border-t border-[#eef2f0] first:border-t-0">
+                            {/* Opens the candidate's details and flyer. */}
+                            <button type="button" aria-haspopup="dialog" onClick={() => setViewing({ n, category: cat.name })} className="flex min-w-0 flex-1 items-center gap-3 rounded-lg py-1.5 text-left hover:bg-ground focus-visible:outline-2 focus-visible:outline-brand">
+                              <Avatar name={n.candidate.name} src={n.candidate.imageUrl} size={36} />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate text-[15px] font-medium hover:underline">{n.candidate.name}</span>
+                                {!upcoming && <span className="block text-xs text-muted sm:hidden">{n.voteCount.toLocaleString()} votes</span>}
+                              </span>
+                            </button>
                             {!upcoming && <span className="hidden text-sm text-muted sm:inline">{n.voteCount.toLocaleString()} votes</span>}
                             <span className="hidden text-[13px] text-muted sm:inline">No:</span>
                             <span className="rounded-lg bg-ground px-2.5 py-1 text-[15px] font-bold">{codeLabel(n.code)}</span>
@@ -308,6 +317,21 @@ export default function ElectionDetail() {
           </Button>
         </aside>
       </div>
+      {viewing && (
+        <CandidateModal
+          nomination={viewing.n}
+          categoryName={viewing.category}
+          election={election}
+          shortcode={SHORTCODE}
+          canRemove={upcoming}
+          onRemove={() => {
+            const n = viewing.n
+            setViewing(null)
+            void removeNomination(n)
+          }}
+          onClose={() => setViewing(null)}
+        />
+      )}
       {(chooser === 'pick' || chooser === 'create') && (
         <ElectionCategories
           election={election}

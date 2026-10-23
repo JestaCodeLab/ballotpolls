@@ -202,10 +202,10 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   ctx.font = `700 13px ${BODY}`
   spaced(ctx, 'VOTE FOR', tx, 112, 2.1)
 
-  // The name takes the biggest size that fits in three lines.
-  let size = 44
+  // The name takes the biggest size (up to 38) that fits in three lines.
+  let size = 38
   let lines: string[] = []
-  for (; size >= 28; size -= 4) {
+  for (; size >= 24; size -= 4) {
     ctx.font = `700 ${size}px ${DISPLAY}`
     lines = wrap(ctx, d.candidateName, tw)
     if (lines.length <= 3 && lines.every((l) => ctx.measureText(l).width <= tw)) break
@@ -302,9 +302,10 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
-// Makes the flyer and hands it to the browser as a download.
-export async function downloadFlyer(d: FlyerData) {
-  const blob = await renderFlyer(d)
+// Hands a flyer picture to the browser as a download. Pass the picture already made (e.g. the one on screen) to avoid
+// drawing it twice.
+export async function downloadFlyer(d: FlyerData, made?: Blob) {
+  const blob = made ?? (await renderFlyer(d))
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
