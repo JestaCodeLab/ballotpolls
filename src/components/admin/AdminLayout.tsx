@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Building2, CalendarDays, ChevronDown, ChevronRight, CreditCard, LayoutGrid, LogOut, Menu, MessageSquare, Users, Wallet, X } from 'lucide-react'
+import { Building2, CalendarDays, ChevronDown, ChevronRight, CreditCard, History, LayoutGrid, LogOut, Menu, MessageSquare, Users, Wallet, X } from 'lucide-react'
 import { useAuth } from '../../store/auth'
 import { Logo } from '../Layout'
 import { Avatar } from '../ui'
 import { useDashboardTitle } from '../../lib/useDashboardTitle'
+import InstallBanner from '../InstallBanner'
 
 const TITLES: [string, string][] = [
   ['/admin', 'Overview'],
@@ -13,6 +14,7 @@ const TITLES: [string, string][] = [
   ['/admin/elections', 'Elections'],
   ['/admin/payments', 'Payments'],
   ['/admin/withdrawals', 'Withdrawals'],
+  ['/admin/activity', 'Activity'],
   ['/admin/sms/credit/return', 'Payment'],
   ['/admin/sms/credit', 'Buy credit'],
   ['/admin/sms/report', 'Delivery report'],
@@ -26,6 +28,7 @@ const links = [
   { to: '/admin/elections', label: 'Elections', icon: CalendarDays },
   { to: '/admin/payments', label: 'Payments', icon: CreditCard },
   { to: '/admin/withdrawals', label: 'Withdrawals', icon: Wallet },
+  { to: '/admin/activity', label: 'Activity', icon: History },
 ]
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -141,6 +144,7 @@ export default function AdminLayout() {
         </div>
         <main className="flex-1 px-5 py-8 md:px-10 md:py-9">
           <div className="flex flex-col gap-6">
+            <InstallBanner />
             <Outlet />
           </div>
         </main>

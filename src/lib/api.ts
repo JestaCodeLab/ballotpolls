@@ -348,3 +348,16 @@ export interface SmsRow {
 export interface SmsReportMeta {
   stats: { total: number; delivered: number; sent: number; failed: number }
 }
+
+/* ---------- Super admin activity log ---------- */
+
+export interface ActivityEntry {
+  id: string
+  type: string
+  at: string
+  actor: string | null
+  role: string | null
+  organisation: string | null
+  orgId: string | null
+  summary: string
+}

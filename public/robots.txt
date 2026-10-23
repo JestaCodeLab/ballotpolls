@@ -15,4 +15,4 @@ Disallow: /settings
 Disallow: /api/
 
 # The sitemap is made by the API server. vercel.json sends /sitemap.xml there.
-Sitemap: https://ballotpolls.com/sitemap.xml
+Sitemap: https://www.ballotpolls.com/sitemap.xml

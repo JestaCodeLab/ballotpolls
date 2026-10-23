@@ -4,6 +4,7 @@ import { AlignLeft, BarChart3, LayoutGrid, Settings, User, Vote, Wallet, X } fro
 import { useAuth } from '../store/auth'
 import Topbar from './Topbar'
 import ProductTour from './ProductTour'
+import InstallBanner from './InstallBanner'
 import { useDashboardTitle } from '../lib/useDashboardTitle'
 
 // Tab titles for the organiser dashboard.
@@ -114,6 +115,7 @@ export default function Layout() {
         <Topbar onMenu={() => setMenuOpen(true)} />
         <main className="flex-1 px-5 py-8 md:px-10 md:py-9">
           <div className="flex flex-col gap-6">
+            <InstallBanner />
             <Outlet />
           </div>
         </main>
