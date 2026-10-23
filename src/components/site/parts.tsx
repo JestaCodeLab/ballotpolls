@@ -55,7 +55,7 @@ export function CandidateCard({ electionSlug, c, showVotes = true }: { electionS
             <span />
           )}
           <div className="flex items-center gap-2 text-[13px] text-muted">
-            Code <span className="rounded-lg bg-ground px-2.5 py-0.5 text-base font-bold text-ink">{String(c.code).padStart(2, '0')}</span>
+            No: <span className="rounded-lg bg-ground px-2.5 py-0.5 text-base font-bold text-ink">{c.code}</span>
           </div>
         </div>
       </div>

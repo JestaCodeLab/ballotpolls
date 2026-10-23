@@ -6,7 +6,7 @@ import { api, errorMessage, type AdminOrganisation } from '../../lib/api'
 import { EmptyState, IconButton, PageHeader } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
-import { OrgChip, SearchBox, useAdminList } from '../../components/admin/parts'
+import { OrgChip, RefreshButton, SearchBox, useAdminList } from '../../components/admin/parts'
 import { confirmDelete } from '../../store/confirm'
 import { toast } from '../../store/toast'
 import { formatDateTime, ghs } from '../../lib/format'
@@ -14,7 +14,7 @@ import { formatPhone, toLocalPhone } from '../../lib/phone'
 
 export default function AdminOrganisations() {
   const [q, setQ] = useState('')
-  const { rows, total, loaded, pagination, setRows } = useAdminList<AdminOrganisation>('organisations', { q: q.trim() || undefined })
+  const { rows, total, loaded, loading, reload, pagination, setRows } = useAdminList<AdminOrganisation>('organisations', { q: q.trim() || undefined })
   const [busy, setBusy] = useState<string | null>(null)
   const navigate = useNavigate()
 
@@ -70,7 +70,10 @@ export default function AdminOrganisations() {
   return (
     <>
       <PageHeader title="Organisations" subtitle="Everyone running events on BallotPolls." />
-      <SearchBox value={q} onChange={setQ} label="Search organisations" placeholder="Search by organisation name" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SearchBox value={q} onChange={setQ} label="Search organisations" placeholder="Search by organisation name" />
+        <RefreshButton onClick={reload} busy={loading} />
+      </div>
       {!loaded ? (
         <TableViewSkeleton />
       ) : total === 0 ? (

@@ -72,6 +72,17 @@ export default function AdminOrganiserDetailPage() {
     }
   }
 
+  const verifyPhone = async () => {
+    if (!(await confirmDelete({ title: `Verify ${u.name}'s phone?`, message: `This marks ${formatPhone(toLocalPhone(u.phone))} as verified without an SMS code, so ${u.name} can use the dashboard straight away. Only do it once you are sure the number is theirs.`, confirmLabel: 'Verify phone number' }))) return
+    try {
+      await api.post(`/admin/users/${id}/verify-phone`)
+      toast.success('Phone number verified', `${u.name} can sign in now.`)
+      await load()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
+  }
+
   const remove = async () => {
     const ok = await confirmDelete({
       title: `Remove ${u.name}?`,
@@ -136,6 +147,11 @@ export default function AdminOrganiserDetailPage() {
             <Row k="Role" v="Organisation admin" />
             <Row k="Joined" v={u.createdAt ? formatDateTime(u.createdAt) : '—'} />
             <Row k="Phone verified" v={u.phoneVerified ? (u.phoneVerifiedAt ? `Yes, ${formatDateTime(u.phoneVerifiedAt)}` : 'Yes') : 'Not yet'} />
+            {!u.phoneVerified && (
+              <Button variant="secondary" onClick={verifyPhone} className="mt-3">
+                Verify phone number
+              </Button>
+            )}
             <Row k="Password last changed" v={u.passwordChangedAt ? formatDateTime(u.passwordChangedAt) : 'Never'} />
           </Card>
           <Card>

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, errorMessage, type Category, type Election, type Nomination } from '../lib/api'
-import { FileSpreadsheet, ListChecks, Plus, Tags } from 'lucide-react'
-import { Avatar, Button, Card, EmptyState, LinkButton, PageHeader, StatusChip } from '../components/ui'
+import { Download, FileSpreadsheet, ListChecks, Loader2, Plus, Tags } from 'lucide-react'
+import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatusChip } from '../components/ui'
+import { downloadFlyer } from '../lib/flyer'
 import AddCandidatesModal from '../components/AddCandidatesModal'
 import ElectionSetupModal from '../components/ElectionSetupModal'
 import ImportCandidates, { type ImportResult } from '../components/ImportCandidates'
@@ -10,6 +11,7 @@ import { codeLabel, formatRange, ghs } from '../lib/format'
 import { toast } from '../store/toast'
 import { DetailPageSkeleton } from '../components/Loading'
 import { confirmDelete } from '../store/confirm'
+import { deleteElectionMessage } from '../lib/electionDelete'
 import ElectionCategories from '../components/ElectionCategories'
 import ElectionCover from '../components/ElectionCover'
 
@@ -81,6 +83,30 @@ export default function ElectionDetail() {
     if (r.skipped.length) toast.error(`${r.skipped.length} row${r.skipped.length === 1 ? '' : 's'} not imported`, r.skipped.slice(0, 2).map((s) => `${s.name}: ${s.reason}`).join(' '))
   }
 
+  // The candidate's flyer, made in the browser and saved as a picture.
+  const [flyerFor, setFlyerFor] = useState<string | null>(null)
+  const makeFlyer = async (n: Nomination, categoryName: string) => {
+    if (!election) return
+    setFlyerFor(n.id)
+    try {
+      await downloadFlyer({
+        candidateName: n.candidate.name,
+        photoUrl: n.candidate.imageUrl,
+        number: n.code,
+        categoryName,
+        electionName: election.name,
+        eventCode: election.eventCode,
+        shortcode: SHORTCODE,
+        price: election.pricePerVote,
+        closesAt: election.endsAt,
+      })
+    } catch {
+      toast.error('Could not make the flyer', 'Try again in a moment.')
+    } finally {
+      setFlyerFor(null)
+    }
+  }
+
   const removeNomination = async (n: Nomination) => {
     const ok = await confirmDelete({
       title: `Remove ${n.candidate.name}?`,
@@ -97,11 +123,29 @@ export default function ElectionDetail() {
     }
   }
 
+  // Ends voting now, before the closing time. It cannot be undone.
+  const closeNow = async () => {
+    if (!election) return
+    const ok = await confirmDelete({
+      title: `Close voting for ${election.name}?`,
+      message: 'Voting ends right now, before the closing time you set. Voters will not be able to vote any more, and it cannot be reopened.',
+      confirmLabel: 'Close voting',
+    })
+    if (!ok) return
+    try {
+      await api.post(`/elections/${id}/close`)
+      toast.success('Voting closed', election.name)
+      await load()
+    } catch (err) {
+      toast.fromError(err)
+    }
+  }
+
   const removeElection = async () => {
     if (!election) return
     const ok = await confirmDelete({
       title: `Delete ${election.name}?`,
-      message: 'Its nominations will be removed too. This cannot be undone.',
+      message: deleteElectionMessage(election, noms.reduce((n, x) => n + x.voteCount, 0)),
       confirmLabel: 'Delete election',
     })
     if (!ok) return
@@ -212,8 +256,11 @@ export default function ElectionDetail() {
                               {!upcoming && <span className="block text-xs text-muted sm:hidden">{n.voteCount.toLocaleString()} votes</span>}
                             </span>
                             {!upcoming && <span className="hidden text-sm text-muted sm:inline">{n.voteCount.toLocaleString()} votes</span>}
-                            <span className="hidden text-[13px] text-muted sm:inline">Code</span>
+                            <span className="hidden text-[13px] text-muted sm:inline">No:</span>
                             <span className="rounded-lg bg-ground px-2.5 py-1 text-[15px] font-bold">{codeLabel(n.code)}</span>
+                            <IconButton label={`Download flyer for ${n.candidate.name}`} tone="brand" disabled={flyerFor === n.id} onClick={() => makeFlyer(n, cat.name)}>
+                              {flyerFor === n.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} strokeWidth={1.8} aria-hidden="true" />}
+                            </IconButton>
                             {upcoming && (
                               <button onClick={() => removeNomination(n)} aria-label={`Remove ${n.candidate.name}`} className="flex h-11 w-11 items-center justify-center rounded-[10px] text-danger hover:bg-red-50">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -251,11 +298,14 @@ export default function ElectionDetail() {
             <div className="mt-1.5 font-display text-3xl font-bold tracking-tight">{ghs(election.pricePerVote)}</div>
             <p className="mt-1 text-sm leading-relaxed text-muted">Each voter pays this amount for one vote.</p>
           </Card>
-          {upcoming && (
-            <Button variant="danger" onClick={removeElection}>
-              Delete election
+          {election.status === 'live' && (
+            <Button variant="secondary" onClick={closeNow}>
+              Close voting now
             </Button>
           )}
+          <Button variant="danger" onClick={removeElection}>
+            Delete election
+          </Button>
         </aside>
       </div>
       {(chooser === 'pick' || chooser === 'create') && (

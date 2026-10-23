@@ -27,7 +27,8 @@ export const toLocalInput = (iso: string) => {
 
 export const fromLocalInput = (value: string) => new Date(value).toISOString()
 
-export const codeLabel = (n: number) => String(n).padStart(2, '0')
+// A candidate's number as voters see it: "2", not "02".
+export const codeLabel = (n: number) => String(n)
 
 const TONES = ['bg-[#d6e8df]', 'bg-[#f6e2b8]', 'bg-[#dce3f2]', 'bg-[#f0d8d2]']
 export const tone = (key: string) => TONES[[...key].reduce((s, c) => s + c.charCodeAt(0), 0) % TONES.length]

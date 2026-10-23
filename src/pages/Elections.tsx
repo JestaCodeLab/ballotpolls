@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, errorMessage, type BulkDeleteResult, type Election, type ElectionStatus } from '../lib/api'
 import { reportBulkDelete } from '../lib/bulk'
-import { Eye, Pencil, Search, SearchX, Trash2, Vote } from 'lucide-react'
+import { CircleStop, Eye, Pencil, Search, SearchX, Trash2, Vote } from 'lucide-react'
 import { EmptyState, IconButton, IconLink, LinkButton, PageHeader, StatusChip } from '../components/ui'
 import Pagination from '../components/Pagination'
 import { usePaged } from '../lib/usePaged'
 import { formatDateTime, ghs } from '../lib/format'
 import { toast } from '../store/toast'
 import { confirmDelete } from '../store/confirm'
+import { deleteElectionMessage } from '../lib/electionDelete'
 import { ElectionRowsSkeleton, Loading, TableViewSkeleton } from '../components/Loading'
 import DataTable, { type Column } from '../components/DataTable'
 import ViewToggle from '../components/ViewToggle'
@@ -38,10 +39,27 @@ export default function Elections() {
       .finally(() => setLoaded(true))
   }, [])
 
+  // Ends voting now, before the closing time. It cannot be undone.
+  const closeNow = async (e: Election) => {
+    const ok = await confirmDelete({
+      title: `Close voting for ${e.name}?`,
+      message: 'Voting ends right now, before the closing time you set. Voters will not be able to vote any more, and it cannot be reopened.',
+      confirmLabel: 'Close voting',
+    })
+    if (!ok) return
+    try {
+      const { data } = await api.post<Election>(`/elections/${e.id}/close`)
+      setItems((all) => all.map((x) => (x.id === e.id ? { ...x, status: data.status, endsAt: data.endsAt } : x)))
+      toast.success('Voting closed', e.name)
+    } catch (err) {
+      toast.fromError(err)
+    }
+  }
+
   const remove = async (e: Election) => {
     const ok = await confirmDelete({
       title: `Delete ${e.name}?`,
-      message: 'Its nominations will be removed too. This cannot be undone.',
+      message: deleteElectionMessage(e, e.totalVotes ?? 0),
       confirmLabel: 'Delete election',
     })
     if (!ok) return
@@ -114,7 +132,7 @@ export default function Elections() {
       cell: (e) => <span className="inline-block rounded bg-accent px-2 py-0.5 text-[13px] font-bold tracking-wider text-ink">{e.eventCode}</span>,
     },
     { key: 'votes', header: 'Votes', align: 'right', sortValue: (e) => e.totalVotes ?? 0, cell: (e) => (e.totalVotes ?? 0).toLocaleString() },
-    { key: 'actions', header: 'Actions', className: 'w-[132px]', cell: (e) => <ElectionActions e={e} onDelete={remove} /> },
+    { key: 'actions', header: 'Actions', className: 'w-[172px]', cell: (e) => <ElectionActions e={e} onDelete={remove} onClose={closeNow} /> },
   ]
 
   return (
@@ -169,9 +187,10 @@ export default function Elections() {
             bulkDelete={{
               noun: ['election', 'elections'],
               rowLabel: (e) => e.name,
-              canSelect: (e) => e.status === 'upcoming',
-              disabledReason: 'Only elections that have not started can be deleted',
-              confirmMessage: () => 'Their nominations will be removed too. This cannot be undone.',
+              confirmMessage: (rows) => {
+                const votes = rows.reduce((n, e) => n + (e.totalVotes ?? 0), 0)
+                return votes > 0 ? `Together they have ${votes.toLocaleString()} votes, and their results will no longer be shown. The elections and their nominations will be removed from your account.` : 'The elections and their nominations will be removed from your account.'
+              },
               onDelete: bulkDelete,
             }}
           />
@@ -193,7 +212,7 @@ export default function Elections() {
             <Stat label="Categories / candidates" value={`${e.categoryCount ?? 0} / ${e.candidateCount ?? 0}`} />
             <Stat label="Event code" value={e.eventCode} highlight />
             <Stat label="Votes" value={(e.totalVotes ?? 0).toLocaleString()} />
-            <ElectionActions e={e} onDelete={remove} />
+            <ElectionActions e={e} onDelete={remove} onClose={closeNow} />
           </article>
         ))}
         {loaded && view === 'cards' && shown.length > 0 && (
@@ -230,23 +249,27 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
 
 // View, edit and delete for one election. A fixed width keeps the icons lined up down the list even when some
 // actions do not apply.
-function ElectionActions({ e, onDelete }: { e: Election; onDelete: (e: Election) => void }) {
+function ElectionActions({ e, onDelete, onClose }: { e: Election; onDelete: (e: Election) => void; onClose: (e: Election) => void }) {
   return (
-    <div className="flex w-[120px] shrink-0 justify-start gap-1">
+    <div className="flex w-[164px] shrink-0 justify-start gap-1">
       <IconLink to={`/elections/${e.id}`} label={`View ${e.name}`}>
         <Eye size={16} strokeWidth={1.8} aria-hidden="true" />
       </IconLink>
-      {/* A closed election can no longer be edited, and only one that has not started can be deleted. */}
+      {/* A closed election can no longer be edited, but any election can be deleted. */}
       {e.status !== 'closed' && (
         <IconLink to={`/elections/${e.id}/edit`} label={`Edit ${e.name}`}>
           <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
         </IconLink>
       )}
-      {e.status === 'upcoming' && (
-        <IconButton label={`Delete ${e.name}`} tone="danger" onClick={() => onDelete(e)}>
-          <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+      {/* Voting can be ended early while it is open. */}
+      {e.status === 'live' && (
+        <IconButton label={`Close voting for ${e.name} now`} onClick={() => onClose(e)}>
+          <CircleStop size={16} strokeWidth={1.8} aria-hidden="true" />
         </IconButton>
       )}
+      <IconButton label={`Delete ${e.name}`} tone="danger" onClick={() => onDelete(e)}>
+        <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+      </IconButton>
     </div>
   )
 }

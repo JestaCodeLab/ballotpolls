@@ -5,7 +5,7 @@ import type { AdminUser } from '../../lib/api'
 import { EmptyState, PageHeader } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
-import { OrgChip, SearchBox, useAdminList } from '../../components/admin/parts'
+import { OrgChip, RefreshButton, SearchBox, useAdminList } from '../../components/admin/parts'
 import { formatDateTime } from '../../lib/format'
 import { formatPhone, toLocalPhone } from '../../lib/phone'
 
@@ -27,12 +27,15 @@ const columns: Column<AdminUser>[] = [
 export default function AdminUsers() {
   const [q, setQ] = useState('')
   const navigate = useNavigate()
-  const { rows, total, loaded, pagination } = useAdminList<AdminUser>('users', { q: q.trim() || undefined })
+  const { rows, total, loaded, loading, reload, pagination } = useAdminList<AdminUser>('users', { q: q.trim() || undefined })
 
   return (
     <>
       <PageHeader title="Organisers" subtitle="The people who sign in to run an organisation's events." />
-      <SearchBox value={q} onChange={setQ} label="Search organisers" placeholder="Search by name, email or phone" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SearchBox value={q} onChange={setQ} label="Search organisers" placeholder="Search by name, email or phone" />
+        <RefreshButton onClick={reload} busy={loading} />
+      </div>
       {!loaded ? (
         <TableViewSkeleton />
       ) : total === 0 ? (

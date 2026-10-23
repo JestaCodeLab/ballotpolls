@@ -10,6 +10,7 @@ import { Link, type LinkProps } from 'react-router-dom'
 import { ArrowLeft, Eye, EyeOff, type LucideIcon } from 'lucide-react'
 import type { ElectionStatus } from '../lib/api'
 import { initials, tone } from '../lib/format'
+import Tooltip from './Tooltip'
 
 const base =
   'inline-flex min-h-11 items-center justify-center rounded-[10px] px-5 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50'
@@ -217,7 +218,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   )
 }
 
-// Square icon-only controls for table and card actions. The label is the screen-reader name and the tooltip.
+// Square icon-only controls for table and card actions. The label is the screen-reader name and the hover tooltip.
 const iconTones = {
   muted: 'border-line text-muted hover:border-field hover:bg-ground hover:text-ink',
   // Quiet like the other icons until the pointer or keyboard lands on it, then solid red with a white icon.
@@ -233,18 +234,22 @@ export function IconButton({
   ...props
 }: { label: string; tone?: keyof typeof iconTones } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'>) {
   return (
-    <button type="button" aria-label={label} title={label} className={`${iconBase} ${iconTones[tone]}`} {...props}>
-      {children}
-    </button>
+    <Tooltip label={label}>
+      <button type="button" aria-label={label} className={`${iconBase} ${iconTones[tone]}`} {...props}>
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 
 // The same look, for actions that go to another page.
 export function IconLink({ label, tone = 'muted', children, ...props }: { label: string; tone?: keyof typeof iconTones } & Omit<LinkProps, 'className'>) {
   return (
-    <Link aria-label={label} title={label} className={`${iconBase} ${iconTones[tone]}`} {...props}>
-      {children}
-    </Link>
+    <Tooltip label={label}>
+      <Link aria-label={label} className={`${iconBase} ${iconTones[tone]}`} {...props}>
+        {children}
+      </Link>
+    </Tooltip>
   )
 }
 

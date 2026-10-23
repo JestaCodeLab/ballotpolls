@@ -227,6 +227,8 @@ export interface AdminElection {
   organisation?: string
   votes: number
   revenue: number
+  // Set when an organiser deleted it; a super admin can restore it.
+  deletedAt?: string
 }
 
 export interface AdminPayment {

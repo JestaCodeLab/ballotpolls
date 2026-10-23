@@ -25,6 +25,7 @@ export default function AdminOrganisationDetailPage() {
   const [busy, setBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [typed, setTyped] = useState('')
+  const [verifying, setVerifying] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +81,21 @@ export default function AdminOrganisationDetailPage() {
 
   const c = org.counts
   const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
+
+  // For an organiser whose SMS code never arrives: verify the number by hand so they can get in.
+  const verifyPhone = async (o: AdminOrganisationDetail['organisers'][number]) => {
+    if (!(await confirmDelete({ title: `Verify ${o.name}'s phone?`, message: `This marks ${formatPhone(toLocalPhone(o.phone))} as verified without an SMS code, so ${o.name} can use the dashboard straight away. Only do it once you are sure the number is theirs.`, confirmLabel: 'Verify phone number' }))) return
+    setVerifying(o.id)
+    try {
+      await api.post(`/admin/users/${o.id}/verify-phone`)
+      toast.success('Phone number verified', `${o.name} can sign in now.`)
+      await load()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setVerifying(null)
+    }
+  }
 
   const removeElection = async (el: AdminElectionRow) => {
     if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: `This permanently removes the election, its nominations and its event code ${el.eventCode}. It has no payments. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
@@ -211,6 +227,11 @@ export default function AdminOrganisationDetailPage() {
                   <div className="text-muted">
                     {formatPhone(toLocalPhone(o.phone))} · {o.phoneVerified ? 'verified' : 'not verified'}
                   </div>
+                  {!o.phoneVerified && (
+                    <Button variant="secondary" disabled={verifying === o.id} onClick={() => verifyPhone(o)} className="mt-2 min-h-9 px-4 text-sm">
+                      {verifying === o.id ? 'Verifying…' : 'Verify phone number'}
+                    </Button>
+                  )}
                 </div>
               ))}
             </Card>

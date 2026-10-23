@@ -11,7 +11,8 @@ import { CandidatePhoto, Section } from '../../components/site/parts'
 import { StatIcon } from '../../components/ui'
 import SiteNotFound from './SiteNotFound'
 
-const pad = (n: number) => String(n).padStart(2, '0')
+// A candidate's number as voters see it: "2", not "02".
+const pad = (n: number) => String(n)
 
 export default function CandidatePublic() {
   const { slug = '', candidateSlug = '' } = useParams()
@@ -33,7 +34,7 @@ export default function CandidatePublic() {
     d
       ? {
           title: `${d.candidate.name} | ${d.election.name} candidate | ${SITE_NAME}`,
-          description: (d.candidate.bio?.trim() || `${d.candidate.name} is standing in ${d.election.name}. Vote with code ${pad(d.standingIn[0].code)} in ${d.standingIn[0].name}.`).slice(0, 300),
+          description: (d.candidate.bio?.trim() || `${d.candidate.name} is standing in ${d.election.name}. Vote with No: ${pad(d.standingIn[0].code)} in ${d.standingIn[0].name}.`).slice(0, 300),
           path,
           // Candidate pages share their election's cover, so every link to the election looks the same.
           image: d.election.coverImageUrl,
@@ -126,7 +127,7 @@ export default function CandidatePublic() {
                     <strong className="font-display text-xl text-[#0b5a43]">{s.votes.toLocaleString()}</strong> {s.votes === 1 ? 'vote' : 'votes'}
                   </span>
                 )}
-                <span className="hidden text-sm text-muted sm:inline">Vote code</span>
+                <span className="hidden text-sm text-muted sm:inline">Vote No:</span>
                 <span className="rounded-lg bg-ground px-3.5 py-1 text-xl font-bold">{pad(s.code)}</span>
               </div>
             ))}
@@ -143,7 +144,7 @@ export default function CandidatePublic() {
                     <div className="min-w-0">
                       <div className="truncate font-semibold leading-snug">{o.name}</div>
                       <div className="mt-0.5 text-[13px] text-muted">
-                        Code {pad(o.code)}
+                        No: {pad(o.code)}
                         {showVotes && <> · <strong className="text-[#0b5a43]">{o.votes.toLocaleString()}</strong> {o.votes === 1 ? 'vote' : 'votes'}</>}
                       </div>
                     </div>
@@ -174,7 +175,7 @@ export default function CandidatePublic() {
                 <ol className="mt-5 list-decimal space-y-2 pl-5 text-[15px] leading-normal text-[#c5d3cc]">
                   <li>Choose the category.</li>
                   <li>
-                    Reply with code <strong className="text-white">{pad(first.code)}</strong> for {first1} in {first.name}.
+                    Enter No: <strong className="text-white">{pad(first.code)}</strong> for {first1} in {first.name}.
                   </li>
                   <li>Confirm the mobile money payment on your phone.</li>
                 </ol>
