@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuth } from './store/auth'
 import ToastViewport from './components/ToastViewport'
@@ -57,6 +57,16 @@ function Protected() {
   return <Layout />
 }
 
+// Sign-in and sign-up pages are for people who are not signed in. Someone who already is goes straight to their
+// dashboard instead, including when they press the browser's Back button after signing in.
+function GuestOnly() {
+  const user = useAuth((s) => s.user)
+  const loading = useAuth((s) => s.loading)
+  if (loading) return <AppLoader />
+  if (user) return <Navigate to={user.role === 'superadmin' ? '/admin' : '/dashboard'} replace />
+  return <Outlet />
+}
+
 // Only for super admins. Anyone else is sent to the pages they can use.
 function AdminOnly() {
   const user = useAuth((s) => s.user)
@@ -90,9 +100,12 @@ export default function App() {
             <Route path="*" element={<SiteNotFound />} />
           </Route>
 
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route element={<GuestOnly />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+          </Route>
+          {/* The reset link from an email works whether or not someone happens to be signed in. */}
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="admin" element={<AdminOnly />}>
             <Route index element={<AdminOverview />} />

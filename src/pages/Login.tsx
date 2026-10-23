@@ -25,7 +25,7 @@ export default function Login() {
     setBusy(true)
     try {
       await login(phone, password)
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       toast.fromError(err)
     } finally {

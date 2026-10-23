@@ -43,7 +43,7 @@ export default function Register() {
     try {
       await register(form)
       toast.success('Account created', 'We sent a code to your phone.')
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       toast.fromError(err)
     } finally {
