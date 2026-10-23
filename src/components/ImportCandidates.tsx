@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from '
 import { Download, FileSpreadsheet } from 'lucide-react'
 import { api, type Candidate, type Category, type Election } from '../lib/api'
 import { downloadImportTemplate, readImportSheet, type ImportRow } from '../lib/csv'
+import { isSupportedSheet, readSheetFile } from '../lib/sheet'
 import { toast } from '../store/toast'
 import { Button } from './ui'
 import Modal from './Modal'
@@ -57,10 +58,15 @@ export default function ImportCandidates({ election, categories, onClose, onBack
   const readFile = async (file: File | undefined) => {
     if (!file) return
     setError(null)
-    if (!/\.(csv|txt)$/i.test(file.name) && !file.type.includes('csv') && !file.type.startsWith('text/'))
-      return setError('Please upload a CSV file. In Excel or Google Sheets, choose Save as or Download, then CSV.')
+    if (!isSupportedSheet(file)) return setError('Please upload a Numbers, Excel or CSV file.')
     if (file.size > MAX_FILE_MB * 1024 * 1024) return setError(`That file is over ${MAX_FILE_MB} MB.`)
-    const result = readImportSheet(await file.text())
+    let text: string
+    try {
+      text = await readSheetFile(file)
+    } catch {
+      return setError('We could not read that file. If it is from Numbers or Excel, try exporting it as CSV.')
+    }
+    const result = readImportSheet(text)
     if (result.error) return setError(result.error)
     setFileName(file.name)
     setRows(result.rows)
@@ -163,7 +169,7 @@ export default function ImportCandidates({ election, categories, onClose, onBack
               <li>
                 For a sub-category, write it as <strong className="text-ink">Music &gt; Artiste of the Year</strong>.
               </li>
-              <li>Save it as a CSV file and upload it here. You will see a preview before anything is created.</li>
+              <li>Upload it here as a Numbers, Excel or CSV file. You will see a preview before anything is created.</li>
             </ol>
             <Button variant="secondary" onClick={downloadImportTemplate} className="mt-4 gap-2">
               <Download size={16} strokeWidth={1.8} aria-hidden="true" />
@@ -182,16 +188,16 @@ export default function ImportCandidates({ election, categories, onClose, onBack
               dragging ? 'border-brand bg-brand-tint' : 'border-field bg-ground hover:border-brand hover:bg-brand-tint/60'
             }`}
           >
-            <input type="file" accept=".csv,text/csv,text/plain" onChange={onPick} className="sr-only" aria-label="Choose a CSV file" />
+            <input type="file" accept=".numbers,.xlsx,.xls,.ods,.csv,text/csv,text/plain" onChange={onPick} className="sr-only" aria-label="Choose a Numbers, Excel or CSV file" />
             <span className="flex flex-col items-center gap-2">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-brand shadow-sm">
                 <FileSpreadsheet size={26} strokeWidth={1.8} aria-hidden="true" />
               </span>
-              <span className="text-[15px] font-semibold">{dragging ? 'Drop to upload' : 'Drag and drop your CSV file here'}</span>
+              <span className="text-[15px] font-semibold">{dragging ? 'Drop to upload' : 'Drag and drop your file here'}</span>
               <span className="text-sm text-muted">
                 or <span className="font-semibold text-brand">click to browse</span>
               </span>
-              <span className="text-[13px] text-muted">CSV file · up to {MAX_FILE_MB} MB · up to 500 rows</span>
+              <span className="text-[13px] text-muted">Numbers, Excel or CSV · up to {MAX_FILE_MB} MB · up to 500 rows</span>
             </span>
           </label>
           {error && (
