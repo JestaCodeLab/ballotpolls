@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElectionRow, type AdminOrganisationDetail } from '../../lib/api'
 import { Button, Card, EmptyState, IconButton, IconLink, Input, PageHeader, Select, StatusChip } from '../../components/ui'
+import Modal from '../../components/Modal'
 import DataTable, { type Column } from '../../components/DataTable'
 import { DetailPageSkeleton } from '../../components/Loading'
 import { OrgChip } from '../../components/admin/parts'
@@ -22,6 +23,8 @@ export default function AdminOrganisationDetailPage() {
   const [name, setName] = useState('')
   const [status, setStatus] = useState<'active' | 'suspended'>('active')
   const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [typed, setTyped] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -64,15 +67,19 @@ export default function AdminOrganisationDetailPage() {
   }
 
   const remove = async () => {
-    if (!(await confirmDelete({ title: `Delete ${org.name}?`, message: 'This permanently removes the organisation with its organisers, elections, categories and candidates. This cannot be undone.', confirmLabel: 'Delete organisation' }))) return
+    setBusy(true)
     try {
-      await api.delete(`/admin/organisations/${id}`)
-      toast.success('Organisation deleted')
+      await api.delete(`/admin/organisations/${id}`, { data: { confirmName: typed } })
+      toast.success('Organisation deleted', 'It and all its data are gone.')
       navigate('/admin/organisations')
     } catch (err) {
       toast.error(errorMessage(err))
+      setBusy(false)
     }
   }
+
+  const c = org.counts
+  const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
 
   const removeElection = async (el: AdminElectionRow) => {
     if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: `This permanently removes the election, its nominations and its event code ${el.eventCode}. It has no payments. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
@@ -209,14 +216,39 @@ export default function AdminOrganisationDetailPage() {
             </Card>
             <Card>
               <h2 className="mb-1.5 font-display text-xl font-bold">Delete organisation</h2>
-              <p className="mb-4 text-sm leading-relaxed text-muted">Removes the organisation, its organisers, categories and candidates. Not possible while it has payments or withdrawals on record. Suspend it instead.</p>
-              <Button variant="secondary" disabled={Boolean(org.deleteBlocked)} onClick={remove} className="text-danger">
+              <p className="mb-4 text-sm leading-relaxed text-muted">Permanently removes the organisation and all of its data: organisers, elections, candidates, categories, payments and withdrawals. This cannot be undone. To stop it without losing anything, suspend it instead.</p>
+              <Button variant="secondary" onClick={() => { setTyped(''); setDeleting(true) }} className="text-danger">
                 Delete organisation
               </Button>
-              {org.deleteBlocked && <p className="mt-2.5 text-[13px] text-muted">Unavailable: {org.deleteBlocked}</p>}
             </Card>
           </div>
         </section>
+      )}
+
+      {deleting && (
+        <Modal
+          title={`Delete ${org.name}?`}
+          description="This permanently deletes the organisation and everything below. It cannot be undone."
+          onClose={() => setDeleting(false)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setDeleting(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" disabled={typed.trim() !== org.name || busy} onClick={remove}>
+                {busy ? 'Deleting…' : 'Delete everything'}
+              </Button>
+            </>
+          }
+        >
+          <ul className="mb-4 list-disc space-y-1 pl-5 text-sm">
+            <li>{plural(c.organisers, 'organiser')} (they are signed out and their accounts removed)</li>
+            <li>{plural(c.elections, 'election')} with all nominations and votes</li>
+            <li>{plural(c.candidates, 'candidate')} and {plural(c.categories, 'category', 'categories')}</li>
+            <li>{plural(c.payments, 'payment record')} and {plural(c.withdrawals, 'withdrawal record')}, so the money history goes too</li>
+          </ul>
+          <Input label={`Type ${org.name} to confirm`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+        </Modal>
       )}
 
       {tab === 'elections' && (

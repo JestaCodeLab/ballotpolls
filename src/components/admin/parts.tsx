@@ -7,9 +7,11 @@ import type { PaginationProps } from '../Pagination'
 // Loads one page of a list from /admin/<path>, and again, after a short pause, whenever the search words, the filters or
 // the page change. The server answers { items, total, page, pageSize }; `pagination` is ready for DataTable's
 // `serverPagination`. A new search or filter goes back to page 1.
-export function useAdminList<T>(path: string, params: Record<string, string | undefined> = {}) {
+export function useAdminList<T, M = undefined>(path: string, params: Record<string, string | undefined> = {}) {
   const [rows, setRows] = useState<T[]>([])
   const [total, setTotal] = useState(0)
+  // Anything else the endpoint sends beside the page, e.g. the SMS report's totals.
+  const [meta, setMeta] = useState<M>()
   const [loaded, setLoaded] = useState(false)
   const [version, setVersion] = useState(0)
   const key = JSON.stringify(params)
@@ -21,11 +23,12 @@ export function useAdminList<T>(path: string, params: Record<string, string | un
     let current = true
     const t = setTimeout(() => {
       api
-        .get<{ items: T[]; total: number }>(`/admin/${path}`, { params: { ...params, page, pageSize: size } })
+        .get<{ items: T[]; total: number } & Partial<M>>(`/admin/${path}`, { params: { ...params, page, pageSize: size } })
         .then((r) => {
           if (!current) return
           setRows(r.data.items)
           setTotal(r.data.total)
+          setMeta(r.data as unknown as M)
         })
         .catch((e) => current && toast.fromError(e))
         .finally(() => current && setLoaded(true))
@@ -45,7 +48,7 @@ export function useAdminList<T>(path: string, params: Record<string, string | un
     onPage: (n) => setPaging({ key, page: n, size }),
     onPageSize: (n) => setPaging({ key, page: 1, size: n }),
   }
-  return { rows, total, loaded, pagination, setRows, reload: () => setVersion((v) => v + 1) }
+  return { rows, total, meta, loaded, pagination, setRows, reload: () => setVersion((v) => v + 1) }
 }
 
 export function SearchBox({ value, onChange, label, placeholder }: { value: string; onChange: (v: string) => void; label: string; placeholder: string }) {

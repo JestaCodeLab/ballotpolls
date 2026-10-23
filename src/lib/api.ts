@@ -38,6 +38,8 @@ export interface User {
   phoneVerified: boolean
   // True for a new account until it finishes or skips the first-time tour.
   showTour: boolean
+  // Only in the answer to registering: false when the verification SMS could not be sent.
+  phoneCodeSent?: boolean
   // When the current session ends (ISO). The app warns shortly before.
   sessionExpiresAt?: string
   notificationPrefs: NotificationPrefs
@@ -272,8 +274,8 @@ export interface AdminOrganisationDetail {
   paidOut: number
   organisers: { id: string; name: string; email: string; phone: string; phoneVerified: boolean }[]
   elections: AdminElectionRow[]
-  // Why the organisation cannot be deleted, or null when it can.
-  deleteBlocked: string | null
+  // Everything deleting the organisation would remove.
+  counts: { organisers: number; elections: number; candidates: number; categories: number; payments: number; withdrawals: number }
 }
 
 export interface AdminOrganiserDetail {
@@ -295,4 +297,52 @@ export interface AdminElectionDetail extends AdminElectionRow {
   description: string
   coverImageUrl?: string
   organisation?: { id: string; name: string }
+}
+
+/* ---------- Super admin SMS ---------- */
+
+export interface SmsBalance {
+  credits: number
+  fetchedAt: string
+}
+
+export interface SmsPackage {
+  id: string
+  name: string
+  credits: number
+  // GHS
+  price: number
+  // FlockText's own tag, e.g. "Most popular". Empty for most.
+  badge: string
+}
+
+export interface SmsSenderId {
+  id: string
+  senderId: string
+  isPrimary: boolean
+  purpose: string
+}
+
+export type SmsStatus = 'sent' | 'delivered' | 'failed'
+
+export interface SmsRow {
+  id: string
+  sentAt: string
+  name: string | null
+  organisation: string | null
+  phone: string
+  text: string
+  credits: number
+  status: SmsStatus
+  deliveredAt?: string
+  senderId?: string
+  providerRef?: string
+  // The status FlockText gave the message, word for word.
+  providerStatus?: string
+  providerReply?: string
+  failureReason?: string
+}
+
+export interface SmsReportMeta {
+  stats: { total: number; delivered: number; sent: number; failed: number }
 }

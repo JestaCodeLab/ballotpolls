@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Building2, CalendarDays, CreditCard, LayoutGrid, LogOut, Menu, Users, Wallet, X } from 'lucide-react'
+import { Building2, CalendarDays, ChevronDown, ChevronRight, CreditCard, LayoutGrid, LogOut, Menu, MessageSquare, Users, Wallet, X } from 'lucide-react'
 import { useAuth } from '../../store/auth'
 import { Logo } from '../Layout'
 import { Avatar } from '../ui'
@@ -13,6 +13,10 @@ const TITLES: [string, string][] = [
   ['/admin/elections', 'Elections'],
   ['/admin/payments', 'Payments'],
   ['/admin/withdrawals', 'Withdrawals'],
+  ['/admin/sms/credit/return', 'Payment'],
+  ['/admin/sms/credit', 'Buy credit'],
+  ['/admin/sms/report', 'Delivery report'],
+  ['/admin/sms', 'Send SMS'],
 ]
 
 const links = [
@@ -27,7 +31,16 @@ const links = [
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 whitespace-nowrap rounded-[10px] px-3 py-3 text-[15px] ${isActive ? 'bg-white/[0.12] font-semibold text-white' : 'text-[#c5d3cc] hover:bg-white/[0.06]'}`
 
+const smsLinks = [
+  { to: '/admin/sms', label: 'Send SMS', end: true },
+  { to: '/admin/sms/credit', label: 'Buy credit' },
+  { to: '/admin/sms/report', label: 'Delivery report' },
+]
+
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation()
+  // The SMS menu is open while one of its pages is showing.
+  const smsOpen = pathname.startsWith('/admin/sms')
   return (
     <>
       <div className="px-2">
@@ -44,6 +57,23 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             {l.label}
           </NavLink>
         ))}
+        <NavLink to="/admin/sms" onClick={onNavigate} aria-expanded={smsOpen} className={() => navClass({ isActive: smsOpen })}>
+          <MessageSquare size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+          <span className="flex-1">SMS</span>
+          {smsOpen ? <ChevronDown size={16} strokeWidth={2} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />}
+        </NavLink>
+        {smsOpen &&
+          smsLinks.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              onClick={onNavigate}
+              className={({ isActive }) => `ml-[21px] block border-l-2 py-2.5 pl-5 pr-3 text-sm ${isActive ? 'border-accent font-semibold text-white' : 'border-transparent text-[#c5d3cc] hover:text-white'}`}
+            >
+              {l.label}
+            </NavLink>
+          ))}
       </nav>
     </>
   )

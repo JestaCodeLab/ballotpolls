@@ -20,7 +20,7 @@ const TITLES: [string, string][] = [
 ]
 
 const links = [
-  { to: '/', label: 'Overview', icon: LayoutGrid, end: true, tour: 'overview' },
+  { to: '/dashboard', label: 'Overview', icon: LayoutGrid, end: true, tour: 'overview' },
   { to: '/elections', label: 'Elections', icon: Vote, tour: 'elections' },
   { to: '/candidates', label: 'Candidates', icon: User, tour: 'candidates' },
   { to: '/categories', label: 'Categories', icon: AlignLeft, tour: 'categories' },

@@ -39,6 +39,10 @@ import AdminWithdrawals from './pages/admin/AdminWithdrawals'
 import AdminOrganisationDetail from './pages/admin/AdminOrganisationDetail'
 import AdminOrganiserDetail from './pages/admin/AdminOrganiserDetail'
 import AdminElectionEdit from './pages/admin/AdminElectionEdit'
+import AdminSms from './pages/admin/sms/AdminSms'
+import AdminSmsCredit from './pages/admin/sms/AdminSmsCredit'
+import AdminSmsReport from './pages/admin/sms/AdminSmsReport'
+import AdminSmsCreditReturn from './pages/admin/sms/AdminSmsCreditReturn'
 
 function Protected() {
   const user = useAuth((s) => s.user)
@@ -99,6 +103,10 @@ export default function App() {
             <Route path="elections/:id" element={<AdminElectionEdit />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="sms" element={<AdminSms />} />
+            <Route path="sms/credit" element={<AdminSmsCredit />} />
+            <Route path="sms/credit/return" element={<AdminSmsCreditReturn />} />
+            <Route path="sms/report" element={<AdminSmsReport />} />
           </Route>
           <Route element={<Protected />}>
             <Route path="dashboard" element={<Overview />} />

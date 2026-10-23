@@ -1,5 +1,4 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import Select from './Select'
 
 export const PAGE_SIZES = [10, 25, 50, 100]
 
@@ -35,26 +34,30 @@ export default function Pagination({ page, pageSize, total, onPage, onPageSize, 
   const pages = Math.max(1, Math.ceil(total / pageSize))
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(total, page * pageSize)
-  const step = 'flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-sm font-semibold'
+  const step = 'flex h-8 min-w-8 items-center justify-center rounded-md border px-1.5 text-[13px] font-semibold'
 
   return (
-    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 text-sm">
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-4 py-2 text-[13px]">
       <p role="status" className="text-muted">
         Showing <strong className="font-semibold text-ink">{from.toLocaleString()}–{to.toLocaleString()}</strong> of <strong className="font-semibold text-ink">{total.toLocaleString()}</strong> {total === 1 ? noun.replace(/s$/, '') : noun}
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Select
-          label="Rows per page"
-          hideLabel
-          value={String(pageSize)}
-          onChange={(v) => onPageSize(Number(v))}
-          options={sizes.map((n) => ({ value: String(n), label: `${n} per page` }))}
-          className="w-36"
-        />
+        <select
+          aria-label="Rows per page"
+          value={pageSize}
+          onChange={(e) => onPageSize(Number(e.target.value))}
+          className="h-8 cursor-pointer rounded-md border border-line bg-white px-2 text-[13px] outline-none focus:border-brand"
+        >
+          {sizes.map((n) => (
+            <option key={n} value={n}>
+              {n} / page
+            </option>
+          ))}
+        </select>
         {pages > 1 && (
           <div className="flex items-center gap-1.5">
             <button type="button" aria-label="Previous page" disabled={page <= 1} onClick={() => onPage(page - 1)} className={`${step} border-line bg-white hover:bg-ground disabled:cursor-not-allowed disabled:opacity-40`}>
-              <ChevronLeft size={17} strokeWidth={2} aria-hidden="true" />
+              <ChevronLeft size={15} strokeWidth={2} aria-hidden="true" />
             </button>
             {windowOf(page, pages).map((n, i) =>
               n === null ? (
@@ -68,7 +71,7 @@ export default function Pagination({ page, pageSize, total, onPage, onPageSize, 
               ),
             )}
             <button type="button" aria-label="Next page" disabled={page >= pages} onClick={() => onPage(page + 1)} className={`${step} border-line bg-white hover:bg-ground disabled:cursor-not-allowed disabled:opacity-40`}>
-              <ChevronRight size={17} strokeWidth={2} aria-hidden="true" />
+              <ChevronRight size={15} strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
         )}

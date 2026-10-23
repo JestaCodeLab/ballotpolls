@@ -18,10 +18,16 @@ export default function VerifyPhone() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [sending, setSending] = useState(false)
-  // The first code went out when the account was created.
-  const [cooldown, setCooldown] = useState(COOLDOWN_SECONDS)
+  // The first code went out when the account was created, unless the text could not be sent: then resending is open at once.
+  const [cooldown, setCooldown] = useState(user.phoneCodeSent === false ? 0 : COOLDOWN_SECONDS)
   const [changing, setChanging] = useState(false)
   const [newPhone, setNewPhone] = useState('')
+
+  useEffect(() => {
+    if (user.phoneCodeSent === false) toast.error('We could not send your code', 'Press Resend code to try again.')
+    // Only on arrival, from sign-up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (cooldown <= 0) return
