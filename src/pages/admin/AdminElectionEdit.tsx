@@ -39,7 +39,7 @@ export default function AdminElectionEditPage() {
   if (error) return <p className="text-muted">{error}</p>
   if (!el) return <FormPageSkeleton />
 
-  const back = el.organisation ? `/admin/organisations/${el.organisation.id}` : '/admin/elections'
+  const back = `/admin/elections/${el.id}`
   const priceNum = Number(price)
 
   const submit = async (e: FormEvent) => {
@@ -69,7 +69,8 @@ export default function AdminElectionEditPage() {
     try {
       await api.delete(`/admin/elections/${id}`)
       toast.success('Election deleted')
-      navigate(back)
+      // Its own page is gone, so go to the organisation's.
+      navigate(el.organisation ? `/admin/organisations/${el.organisation.id}` : '/admin/elections')
     } catch (err) {
       toast.error(errorMessage(err))
     }
@@ -77,7 +78,7 @@ export default function AdminElectionEditPage() {
 
   return (
     <>
-      <PageHeader back={{ to: back, label: el.organisation ? `Back to ${el.organisation.name}` : 'Back to elections' }} title="Edit election" subtitle={`${el.name}${el.organisation ? ` · ${el.organisation.name}` : ''}`} />
+      <PageHeader back={{ to: back, label: 'Back to election' }} title="Edit election" subtitle={`${el.name}${el.organisation ? ` · ${el.organisation.name}` : ''}`} />
 
       <form onSubmit={submit} noValidate className="grid items-start gap-5 lg:grid-cols-3">
         <Card className="space-y-5 lg:col-span-2">

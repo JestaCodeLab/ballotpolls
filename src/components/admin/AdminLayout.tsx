@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Building2, CalendarDays, ChevronDown, ChevronRight, CreditCard, History, LayoutGrid, LogOut, Menu, MessageSquare, Users, Wallet, X } from 'lucide-react'
+import { BarChart3, Building2, CalendarDays, Smartphone, ChevronDown, ChevronRight, CreditCard, History, LayoutGrid, LogOut, Menu, MessageSquare, Users, Wallet, X } from 'lucide-react'
 import { useAuth } from '../../store/auth'
 import { Logo } from '../Layout'
 import { Avatar } from '../ui'
@@ -12,8 +12,10 @@ const TITLES: [string, string][] = [
   ['/admin/organisations', 'Organisations'],
   ['/admin/users', 'Organisers'],
   ['/admin/elections', 'Elections'],
+  ['/admin/results', 'Live results'],
   ['/admin/payments', 'Payments'],
   ['/admin/withdrawals', 'Withdrawals'],
+  ['/admin/ussd', 'USSD codes'],
   ['/admin/activity', 'Activity'],
   ['/admin/sms/credit/return', 'Payment'],
   ['/admin/sms/credit', 'Buy credit'],
@@ -26,8 +28,10 @@ const links = [
   { to: '/admin/organisations', label: 'Organisations', icon: Building2 },
   { to: '/admin/users', label: 'Organisers', icon: Users },
   { to: '/admin/elections', label: 'Elections', icon: CalendarDays },
+  { to: '/admin/results', label: 'Live results', icon: BarChart3 },
   { to: '/admin/payments', label: 'Payments', icon: CreditCard },
   { to: '/admin/withdrawals', label: 'Withdrawals', icon: Wallet },
+  { to: '/admin/ussd', label: 'USSD codes', icon: Smartphone },
   { to: '/admin/activity', label: 'Activity', icon: History },
 ]
 

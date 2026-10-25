@@ -1,4 +1,5 @@
 import { initials } from './format'
+import { DEFAULT_BRAND, mix, onColor, rgb } from './color'
 
 // The candidate flyer: a 600 x 600 picture a candidate can share, drawn in the browser so nothing is uploaded or stored.
 // The layout follows the "Flyer: Candidate" design. `scale` 2 gives a 1200 x 1200 file that stays sharp on phones.
@@ -13,14 +14,16 @@ export interface FlyerData {
   eventCode: string
   // What voters dial, e.g. *713*55#. Without one, the flyer says "short code".
   shortcode?: string
+  // The organisation's colours: the flyer's background and its accent. Unset means BallotPolls' own.
+  brand?: { primary?: string | null; accent?: string | null }
   // GHS per vote.
   price: number
   // ISO time voting closes.
   closesAt: string
 }
 
-const INK = '#10201B'
-const AMBER = '#F2B33D'
+// BallotPolls' own colours, used when an organisation has not chosen any. DARK is the plain dark writing on the light card.
+const DARK = '#10201B'
 const BRAND = '#0B7A5B'
 const DISPLAY = "'Bricolage Grotesque', sans-serif"
 const BODY = "'Figtree', system-ui, sans-serif"
@@ -99,11 +102,20 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   canvas.width = 600 * scale
   canvas.height = 600 * scale
   const ctx = canvas.getContext('2d')!
+  // The organisation's colours: the background, the accent, and writing that reads on the accent. Without a chosen main
+  // colour the flyer keeps BallotPolls' green touches.
+  const ink = d.brand?.primary || DEFAULT_BRAND.primary
+  const accent = d.brand?.accent || DEFAULT_BRAND.accent
+  const onAccent = onColor(accent)
+  const glow2 = d.brand?.primary ? mix(ink, '#FFFFFF', 0.28) : BRAND
+  const stepColor = d.brand?.primary ? ink : BRAND
+  // Softer writing on the background: a little off white, tinted towards the main colour so it never clashes.
+  const soft = d.brand?.primary ? mix('#FFFFFF', ink, 0.12) : '#C5D3CC'
   ctx.scale(scale, scale)
   ctx.textBaseline = 'alphabetic'
 
   // Background and the two soft glows.
-  ctx.fillStyle = INK
+  ctx.fillStyle = ink
   ctx.fillRect(0, 0, 600, 600)
   const glow = (cx: number, cy: number, r: number, rgb: string, a: number) => {
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
@@ -112,17 +124,17 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
     ctx.fillStyle = g
     ctx.fillRect(0, 0, 600, 600)
   }
-  glow(530, 50, 190, '242,179,61', 0.34)
-  glow(40, 330, 150, '11,122,91', 0.55)
+  glow(530, 50, 190, rgb(accent), 0.34)
+  glow(40, 330, 150, rgb(glow2), 0.55)
 
   // Header: the mark, the name and the tag.
-  ctx.fillStyle = AMBER
+  ctx.fillStyle = accent
   roundRect(ctx, 32, 32, 30, 30, 8)
   ctx.fill()
   ctx.save()
   ctx.translate(32 + 6.5, 32 + 6.5)
   ctx.scale(17 / 24, 17 / 24)
-  ctx.strokeStyle = INK
+  ctx.strokeStyle = onAccent
   ctx.lineWidth = 2.6
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -139,11 +151,11 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   ctx.font = `700 12px ${BODY}`
   const tag = 'VOTE BY PHONE'
   const tagW = spacedWidth(ctx, tag, 1.7)
-  ctx.strokeStyle = AMBER
+  ctx.strokeStyle = accent
   ctx.lineWidth = 1.5
   roundRect(ctx, 568 - tagW - 24, 33, tagW + 24, 28, 14)
   ctx.stroke()
-  ctx.fillStyle = AMBER
+  ctx.fillStyle = accent
   spaced(ctx, tag, 568 - tagW - 12, 51.5, 1.7)
 
   // The candidate's picture, or their initials, in a rounded frame.
@@ -168,37 +180,43 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
     ctx.textAlign = 'left'
   }
   ctx.restore()
-  ctx.strokeStyle = AMBER
+  ctx.strokeStyle = accent
   ctx.lineWidth = 3
   roundRect(ctx, px + 1.5, py + 1.5, pw - 3, ph - 3, 21)
   ctx.stroke()
 
-  // The number badge on the frame's corner.
-  const bx = 237
-  const by = 339
-  ctx.fillStyle = AMBER
-  ctx.beginPath()
-  ctx.arc(bx, by, 35, 0, Math.PI * 2)
+  // The code badge: a rounded box on the frame's bottom-right corner, wide enough for a four-digit code.
+  const bw = 96
+  const bh = 72
+  const bx = 272 - bw
+  const by = 374 - bh
+  ctx.fillStyle = accent
+  roundRect(ctx, bx, by, bw, bh, 20)
   ctx.fill()
-  ctx.strokeStyle = INK
+  ctx.strokeStyle = ink
   ctx.lineWidth = 4
-  ctx.beginPath()
-  ctx.arc(bx, by, 33, 0, Math.PI * 2)
+  roundRect(ctx, bx + 2, by + 2, bw - 4, bh - 4, 18)
   ctx.stroke()
-  ctx.fillStyle = INK
+  ctx.fillStyle = onAccent
   ctx.font = `700 10px ${BODY}`
-  const noW = spacedWidth(ctx, 'NO:', 1)
-  spaced(ctx, 'NO:', bx - noW / 2, by - 9, 1)
+  const noW = spacedWidth(ctx, 'CODE', 1)
+  spaced(ctx, 'CODE', bx + bw / 2 - noW / 2, by + 22, 1)
+  // The number takes the biggest size that fits the box, so a longer code (five or six digits) still sits inside it.
   const num = String(d.number)
-  ctx.font = `700 ${num.length > 2 ? 24 : 32}px ${DISPLAY}`
+  let numSize = 34
+  ctx.font = `700 ${numSize}px ${DISPLAY}`
+  while (numSize > 16 && ctx.measureText(num).width > bw - 20) {
+    numSize -= 2
+    ctx.font = `700 ${numSize}px ${DISPLAY}`
+  }
   ctx.textAlign = 'center'
-  ctx.fillText(num, bx, by + 20)
+  ctx.fillText(num, bx + bw / 2, by + bh - 14)
   ctx.textAlign = 'left'
 
   // Name block, to the right of the picture.
   const tx = 284
   const tw = 284
-  ctx.fillStyle = AMBER
+  ctx.fillStyle = accent
   ctx.font = `700 13px ${BODY}`
   spaced(ctx, 'VOTE FOR', tx, 112, 2.1)
 
@@ -230,7 +248,7 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   ctx.fillText(cat, tx + 14, y + 21)
   y += 32 + 14
   ctx.font = `500 15px ${BODY}`
-  ctx.fillStyle = '#C5D3CC'
+  ctx.fillStyle = soft
   for (const l of wrap(ctx, d.electionName, tw).slice(0, 2)) {
     y += 15
     ctx.fillText(l, tx, y)
@@ -248,12 +266,12 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   const colW = (492 - 24) / 3
   const steps: { n: string; a: string; b: string; strong: boolean }[] = [
     { n: '1', a: 'Dial', b: d.shortcode ?? 'short code', strong: true },
-    { n: '2', a: 'Enter event code', b: d.eventCode, strong: true },
-    { n: '3', a: 'Choose category,', b: `then No: ${d.number}`, strong: true },
+    { n: '2', a: 'Enter candidate code', b: String(d.number), strong: true },
+    { n: '3', a: 'Then confirm', b: 'and pay', strong: true },
   ]
   steps.forEach((s, i) => {
     const sx = 54 + i * (colW + 12)
-    ctx.fillStyle = BRAND
+    ctx.fillStyle = stepColor
     ctx.beginPath()
     ctx.arc(sx + 12, 454, 12, 0, Math.PI * 2)
     ctx.fill()
@@ -265,9 +283,10 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
     ctx.fillStyle = '#3F4F49'
     ctx.font = `500 13px ${BODY}`
     ctx.fillText(s.a, sx + 33, 450)
-    ctx.fillStyle = INK
+    ctx.fillStyle = DARK
     ctx.font = `700 17px ${BODY}`
-    if (i === 1) spaced(ctx, s.b, sx + 33, 470, 1)
+    // The candidate's code is the one to read out, so it is set a little wider.
+    if (i === 1) spaced(ctx, s.b, sx + 33, 470, 1.5)
     else ctx.fillText(s.b, sx + 33, 470)
   })
 
@@ -279,7 +298,7 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   ctx.stroke()
 
   const price = `GHS ${d.price.toFixed(2)}`
-  ctx.fillStyle = INK
+  ctx.fillStyle = DARK
   ctx.font = `700 20px ${DISPLAY}`
   ctx.fillText(price, 54, 527)
   const pw2 = ctx.measureText(`${price} `).width
@@ -290,7 +309,7 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
   const when = closing(d.closesAt)
   ctx.font = `700 13px ${BODY}`
   const whenW = ctx.measureText(when).width
-  ctx.fillStyle = INK
+  ctx.fillStyle = DARK
   ctx.fillText(when, 546 - whenW, 526)
   ctx.font = `500 13px ${BODY}`
   ctx.fillStyle = '#5B6B65'

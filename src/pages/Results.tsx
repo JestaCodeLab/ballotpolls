@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { BarChart3, Coins, Vote } from 'lucide-react'
 import { api, type Category, type Election, type Nomination } from '../lib/api'
 import { Avatar, Card, EmptyState, LinkButton, PageHeader, Select, StatIcon } from '../components/ui'
@@ -28,7 +29,11 @@ const CHART_H = 260
 // Each candidate gets at least this much width, so long lists scroll sideways instead of squeezing.
 const COL_MIN = 64
 
-export default function Results() {
+// The same page serves organisers (their own elections) and super admins (every election, with its organisation named).
+export default function Results({ admin = false }: { admin?: boolean }) {
+  // ?election=<id> opens the page on that election, e.g. from its details page.
+  const [params] = useSearchParams()
+  const wanted = params.get('election')
   const [elections, setElections] = useState<Election[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [electionId, setElectionId] = useState<string>('')
@@ -38,18 +43,18 @@ export default function Results() {
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
 
   useEffect(() => {
-    Promise.all([api.get<Election[]>('/elections'), api.get<Category[]>('/categories')])
+    Promise.all([api.get<Election[]>(admin ? '/admin/live/elections' : '/elections'), admin ? Promise.resolve({ data: [] as Category[] }) : api.get<Category[]>('/categories')])
       .then(([e, c]) => {
         setElections(e.data)
         setCategories(c.data)
-        // Start on the election that is live, otherwise the most recent one.
-        setElectionId((e.data.find((x) => x.status === 'live') ?? e.data[0])?.id ?? '')
+        // Start on the one asked for, otherwise the election that is live, otherwise the most recent one.
+        setElectionId((e.data.find((x) => x.id === wanted) ?? e.data.find((x) => x.status === 'live') ?? e.data[0])?.id ?? '')
       })
       .catch((err) => {
         toast.fromError(err)
         setElections([])
       })
-  }, [])
+  }, [wanted, admin])
 
   const election = elections?.find((e) => e.id === electionId)
   const live = election?.status === 'live'
@@ -57,13 +62,19 @@ export default function Results() {
   const loadVotes = useCallback(async () => {
     if (!electionId) return
     try {
-      const { data } = await api.get<Nomination[]>(`/elections/${electionId}/nominations`)
-      setNoms(data)
+      if (admin) {
+        const { data } = await api.get<{ categories: Category[]; nominations: Nomination[] }>(`/admin/live/elections/${electionId}`)
+        setNoms(data.nominations)
+        setCategories(data.categories)
+      } else {
+        const { data } = await api.get<Nomination[]>(`/elections/${electionId}/nominations`)
+        setNoms(data)
+      }
       setUpdatedAt(Date.now())
     } catch (err) {
       toast.fromError(err)
     }
-  }, [electionId])
+  }, [electionId, admin])
 
   useEffect(() => {
     loadVotes()
@@ -121,7 +132,7 @@ export default function Results() {
         <EmptyState
           icon={BarChart3}
           title="No elections yet"
-          action={<LinkButton to="/elections/new">Create an election</LinkButton>}
+          action={admin ? undefined : <LinkButton to="/elections/new">Create an election</LinkButton>}
         >
           Once an election is open for voting, results appear here and update as votes come in.
         </EmptyState>
@@ -163,7 +174,7 @@ export default function Results() {
             label="Election"
             value={electionId}
             onChange={setElectionId}
-            options={elections.map((e) => ({ value: e.id, label: `${e.name} (${e.status})` }))}
+            options={elections.map((e) => ({ value: e.id, label: `${e.name}${e.organisation ? ` · ${e.organisation}` : ''} (${e.status})` }))}
           />
         </div>
       )}

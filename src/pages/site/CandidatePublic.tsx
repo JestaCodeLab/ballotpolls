@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, Vote } from 'lucide-react'
+import { ArrowLeft, Phone } from 'lucide-react'
 import { api, type PublicCandidateDetail } from '../../lib/api'
 import { useSeo } from '../../lib/useSeo'
 import { SHORTCODE, SITE_NAME, absoluteUrl } from '../../lib/site'
 import { useNow } from '../../lib/useNow'
 import { formatCountdown, ghs } from '../../lib/format'
-import { CandidatePhoto, Section } from '../../components/site/parts'
-import { StatIcon } from '../../components/ui'
+import { CandidatePhoto, Crumbs, Section } from '../../components/site/parts'
 import SiteNotFound from './SiteNotFound'
 
 // A candidate's number as voters see it: "2", not "02".
@@ -16,6 +15,8 @@ const pad = (n: number) => String(n)
 
 export default function CandidatePublic() {
   const { slug = '', candidateSlug = '' } = useParams()
+  // Which of the candidate's categories the voter is looking at: it decides the code shown.
+  const [sel, setSel] = useState(0)
   const [d, setD] = useState<PublicCandidateDetail | null>(null)
   const [missing, setMissing] = useState(false)
   const now = useNow()
@@ -23,6 +24,7 @@ export default function CandidatePublic() {
   useEffect(() => {
     setD(null)
     setMissing(false)
+    setSel(0)
     api
       .get<PublicCandidateDetail>(`/public/elections/${slug}/candidates/${candidateSlug}`)
       .then((r) => setD(r.data))
@@ -34,7 +36,7 @@ export default function CandidatePublic() {
     d
       ? {
           title: `${d.candidate.name} | ${d.election.name} candidate | ${SITE_NAME}`,
-          description: (d.candidate.bio?.trim() || `${d.candidate.name} is standing in ${d.election.name}. Vote with No: ${pad(d.standingIn[0].code)} in ${d.standingIn[0].name}.`).slice(0, 300),
+          description: (d.candidate.bio?.trim() || `${d.candidate.name} is a candidate in ${d.election.name}. Vote with code ${pad(d.standingIn[0].code)} in ${d.standingIn[0].name}.`).slice(0, 300),
           path,
           // Candidate pages share their election's cover, so every link to the election looks the same.
           image: d.election.coverImageUrl,
@@ -65,128 +67,161 @@ export default function CandidatePublic() {
       </Section>
     )
 
-  const { election, candidate, standingIn, othersInCategory } = d
-  const first = standingIn[0]
+  const { election, candidate, standingIn, othersByCategory } = d
+  const current = standingIn[Math.min(sel, standingIn.length - 1)]
+  const categoryName = (s: (typeof standingIn)[number]) => (s.parentName ? `${s.name} (${s.parentName})` : s.name)
+  const others = othersByCategory[current.categoryId] ?? []
   const closed = election.status === 'closed'
   const clock = election.status === 'live' ? `Voting closes in ${formatCountdown(new Date(election.endsAt).getTime() - now)}` : election.status === 'upcoming' ? `Voting opens in ${formatCountdown(new Date(election.startsAt).getTime() - now)}` : 'Voting has closed'
-  const first1 = candidate.name.split(' ')[0]
+  const dial = election.shortcode ?? SHORTCODE
   // Nobody can have voted before voting opens, so a count of zero would only be noise.
   const showVotes = election.status !== 'upcoming'
+  const step = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-white'
 
   return (
-    <Section className="pb-[72px] pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <Link to={`/events/${slug}`} className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-line bg-white px-4 text-[15px] font-semibold text-ink hover:bg-ground">
+    <Section className="pb-[72px] pt-7">
+      <div className="flex items-center justify-between gap-3 sm:gap-x-6">
+        <Link to={`/events/${slug}`} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] border border-line bg-white px-4 text-[15px] font-semibold text-ink hover:bg-ground">
           <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
-          Back to {election.name}
+          Go Back
         </Link>
-        <nav aria-label="Breadcrumb" className="ml-auto text-sm text-muted">
-          <Link to="/events" className="hover:underline">Elections</Link> <span aria-hidden="true">/</span>{' '}
-          <Link to={`/events/${slug}`} className="hover:underline">{election.name}</Link> <span aria-hidden="true">/</span>{' '}
-          <strong aria-current="page" className="font-semibold text-ink">{candidate.name}</strong>
-        </nav>
+        <Crumbs items={[{ label: 'Elections', to: '/events' }, { label: election.name, to: `/events/${slug}` }, { label: candidate.name }]} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-start gap-10">
-        <div className="min-w-0 flex-[3_1_560px]">
-          <div className="flex flex-wrap items-start gap-8">
-            <CandidatePhoto name={candidate.name} src={candidate.imageUrl} className="aspect-square w-[300px] max-w-full rounded-[20px] text-[100px]" />
+        {/* Who: the candidate, plainly. */}
+        <div className="min-w-0 flex-[1_1_520px]">
+          <div className="flex flex-wrap items-center gap-7">
+            <CandidatePhoto name={candidate.name} src={candidate.imageUrl} className="aspect-square w-[200px] max-w-full rounded-[28px] text-[72px]" />
             <div className="min-w-0 flex-[1_1_260px]">
-              <div className="flex flex-wrap gap-2">
-                {standingIn.map((s) => (
-                  <span key={s.categoryId} className="rounded-full bg-brand-tint px-3 py-1 text-[13px] font-medium text-[#0b5a43]">
-                    {s.parentName ? `${s.name} (${s.parentName})` : s.name}
-                  </span>
-                ))}
-              </div>
-              <h1 className="mt-4 font-display text-5xl font-bold leading-[1.05] tracking-tight">{candidate.name}</h1>
-              <p className="mt-2.5 text-base text-muted">
-                Candidate in <Link to={`/events/${slug}`} className="font-semibold text-brand hover:underline">{election.name}</Link>
+              <div className="text-sm font-semibold tracking-wide text-[#0b5a43]">CANDIDATE</div>
+              <h1 className="mt-1.5 font-display text-4xl font-bold leading-[1.04] tracking-tight md:text-[52px]">{candidate.name}</h1>
+              <p className="mt-2.5 text-[17px] text-muted">
+                in <Link to={`/events/${slug}`} className="font-semibold text-brand hover:underline">{election.name}</Link>
               </p>
-              {showVotes && (
-                <div className="mt-5 inline-flex items-center gap-4 rounded-2xl border border-line bg-white px-5 py-4">
-                  <StatIcon icon={Vote} />
-                  <div>
-                    <div className="text-[13px] text-muted">Total votes{standingIn.length > 1 ? ' across all categories' : ''}</div>
-                    <div className="font-display text-4xl font-bold leading-none tracking-tight text-[#0b5a43]">{candidate.totalVotes.toLocaleString()}</div>
-                  </div>
-                </div>
-              )}
-              {candidate.bio && <p className="mt-5 max-w-[560px] whitespace-pre-line text-lg leading-relaxed">{candidate.bio}</p>}
             </div>
           </div>
 
-          <h2 className="mb-1.5 mt-12 font-display text-[28px] font-bold tracking-tight">Standing in</h2>
-          <p className="mb-4 text-base text-muted">Each category has its own vote code for {first1}.</p>
-          <div className="overflow-hidden rounded-2xl border border-line bg-white">
-            {standingIn.map((s) => (
-              <div key={s.categoryId} className="flex items-center gap-4 border-t border-[#eef2f0] px-[22px] py-[18px] first:border-t-0">
-                <div className="min-w-0 flex-1 text-lg font-semibold">{s.parentName ? `${s.name} (${s.parentName})` : s.name}</div>
-                {showVotes && (
-                  <span className="whitespace-nowrap text-sm text-muted">
-                    <strong className="font-display text-xl text-[#0b5a43]">{s.votes.toLocaleString()}</strong> {s.votes === 1 ? 'vote' : 'votes'}
-                  </span>
-                )}
-                <span className="hidden text-sm text-muted sm:inline">Vote No:</span>
-                <span className="rounded-lg bg-ground px-3.5 py-1 text-xl font-bold">{pad(s.code)}</span>
+          {candidate.bio && <p className="mt-7 max-w-[600px] whitespace-pre-line text-lg leading-relaxed">{candidate.bio}</p>}
+
+          <div className="mt-7 flex flex-wrap gap-3.5">
+            {showVotes && (
+              <div className="min-w-[150px] rounded-[14px] border border-line bg-white px-5 py-3.5">
+                <div className="text-[13px] text-muted">Total votes</div>
+                <div className="mt-0.5 font-display text-[28px] font-bold leading-tight">{candidate.totalVotes.toLocaleString()}</div>
               </div>
-            ))}
+            )}
+            <div className="min-w-[150px] rounded-[14px] border border-line bg-white px-5 py-3.5">
+              <div className="text-[13px] text-muted">Standing in</div>
+              <div className="mt-0.5 font-display text-[28px] font-bold leading-tight">
+                {standingIn.length} categor{standingIn.length === 1 ? 'y' : 'ies'}
+              </div>
+            </div>
           </div>
 
-          {othersInCategory.candidates.length > 0 && (
-            <>
-              <h2 className="mb-1.5 mt-12 font-display text-[28px] font-bold tracking-tight">Also in {othersInCategory.name}</h2>
-              <p className="mb-4 text-base text-muted">The other candidates you can choose between.</p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {othersInCategory.candidates.map((o) => (
-                  <Link key={o.slug} to={`/events/${slug}/candidates/${o.slug}`} className="flex items-center gap-3.5 rounded-[14px] border border-line bg-white p-3.5 text-ink hover:shadow-md">
-                    <CandidatePhoto name={o.name} src={o.imageUrl} className="h-[52px] w-[52px] shrink-0 rounded-xl text-[17px]" />
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold leading-snug">{o.name}</div>
+          {others.length > 0 && (
+            // Hidden on a phone, so the vote card is what comes next.
+            <div className="hidden md:block">
+              <h2 className="mb-1.5 mt-12 font-display text-[26px] font-bold tracking-tight">Also in {categoryName(current)}</h2>
+              <p className="mb-4 text-base text-muted">The other candidates in this category, each with their own code.</p>
+              <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+                {others.map((o) => (
+                  <Link key={o.slug} to={`/events/${slug}/candidates/${o.slug}`} className="flex items-center gap-3 rounded-[14px] border border-line bg-white p-3 text-ink hover:shadow-md">
+                    <CandidatePhoto name={o.name} src={o.imageUrl} className="h-12 w-12 shrink-0 rounded-xl text-base" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-semibold leading-snug">{o.name}</div>
                       <div className="mt-0.5 text-[13px] text-muted">
-                        No: {pad(o.code)}
-                        {showVotes && <> · <strong className="text-[#0b5a43]">{o.votes.toLocaleString()}</strong> {o.votes === 1 ? 'vote' : 'votes'}</>}
+                        Code <strong className="text-sm text-ink">{pad(o.code)}</strong>
+                        {showVotes && <> · {o.votes.toLocaleString()} {o.votes === 1 ? 'vote' : 'votes'}</>}
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
 
-        <aside aria-label={`How to vote for ${candidate.name}`} className="flex w-full flex-col gap-4 lg:sticky lg:top-6 lg:w-auto lg:min-w-[340px] lg:flex-[2_1_340px]">
-          <div className="rounded-[20px] bg-ink p-7 text-[#e8efeb]">
-            <div className="text-sm text-[#a9bbb3]">Vote for {candidate.name}</div>
+        {/* How: the code is the hero. */}
+        <aside aria-label={`How to vote for ${candidate.name}`} className="w-full min-w-0 lg:sticky lg:top-6 lg:w-auto lg:min-w-[340px] lg:max-w-[460px] lg:flex-[0_1_460px]">
+          <div className="rounded-[28px] bg-ink p-7 text-[#e8efeb] shadow-[0_24px_50px_rgba(16,32,27,0.22)]">
+            <div className="text-[13px] font-bold uppercase tracking-[0.16em] text-accent">Vote for {candidate.name}</div>
+
             {closed ? (
-              <p className="mt-3 text-base leading-relaxed">Voting in this election has closed.</p>
+              <p className="mt-4 text-base leading-relaxed">Voting in this election has closed. Thank you to everyone who took part.</p>
             ) : (
               <>
-                {SHORTCODE && (
+                {standingIn.length > 1 ? (
                   <>
-                    <div className="mt-3.5 text-sm text-[#a9bbb3]">Dial</div>
-                    <div className="font-display text-[44px] font-bold leading-[1.1]">{SHORTCODE}</div>
+                    <div className="mt-[18px] text-sm text-[#a9bbb3]">Which category are you voting in?</div>
+                    <div role="radiogroup" aria-label="Category" className="mt-2.5 flex flex-col gap-2">
+                      {standingIn.map((s, i) => {
+                        const on = s.categoryId === current.categoryId
+                        return (
+                          <button
+                            key={s.categoryId}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            onClick={() => setSel(i)}
+                            className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 px-3.5 py-2.5 text-left text-white ${on ? 'border-accent bg-accent/10' : 'border-white/15 hover:bg-white/5'}`}
+                          >
+                            <span className={`h-5 w-5 shrink-0 rounded-full border-2 ${on ? 'border-accent bg-accent' : 'border-[#6f8a7f]'}`} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[15px] font-semibold leading-snug">{categoryName(s)}</span>
+                              {showVotes && <span className="mt-0.5 block text-xs text-[#a9bbb3]">{s.votes.toLocaleString()} {s.votes === 1 ? 'vote' : 'votes'}</span>}
+                            </span>
+                            <span className="font-display text-lg font-bold text-accent">{pad(s.code)}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </>
+                ) : (
+                  <div className="mt-[18px] text-[15px] text-[#c5d3cc]">{categoryName(current)}</div>
                 )}
-                <div className="mt-4 text-base">
-                  {SHORTCODE ? 'Then enter event code ' : 'Enter event code '}
-                  <span className="inline-block rounded-md bg-accent px-2.5 py-0.5 font-bold tracking-wider text-ink">{election.eventCode}</span>
+
+                <div className="mt-5 rounded-[22px] bg-accent px-[22px] py-[18px] text-center text-ink">
+                  <div className="text-xs font-bold tracking-[0.18em]">CANDIDATE CODE</div>
+                  <div aria-live="polite" className="mt-1.5 font-display text-[72px] font-bold leading-none tracking-[0.02em] md:text-[84px]">{pad(current.code)}</div>
                 </div>
-                <ol className="mt-5 list-decimal space-y-2 pl-5 text-[15px] leading-normal text-[#c5d3cc]">
-                  <li>Choose the category.</li>
-                  <li>
-                    Enter No: <strong className="text-white">{pad(first.code)}</strong> for {first1} in {first.name}.
+
+                <ol className="mt-[22px] flex flex-col gap-3.5">
+                  <li className="flex items-center gap-3">
+                    <span className={step}>1</span>
+                    <span className="text-base">{dial ? <>Dial <strong className="text-xl text-white">{dial}</strong></> : 'Dial the short code'}</span>
                   </li>
-                  <li>Confirm the mobile money payment on your phone.</li>
+                  <li className="flex items-center gap-3">
+                    <span className={step}>2</span>
+                    <span className="text-base">Enter code <strong className="text-xl text-accent">{pad(current.code)}</strong></span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className={step}>3</span>
+                    <span className="text-base">Confirm and approve the payment</span>
+                  </li>
                 </ol>
+
+                {dial && (
+                  <a href={`tel:${dial.replace(/#/g, '%23')}`} className="mt-[22px] flex min-h-[52px] items-center justify-center gap-2.5 rounded-[14px] bg-brand text-base font-bold !text-white hover:bg-brand-dark">
+                    <Phone size={20} strokeWidth={2} aria-hidden="true" />
+                    Tap to dial on this phone
+                  </a>
+                )}
               </>
             )}
-            <div className="mt-5 flex items-baseline justify-between gap-3 border-t border-white/15 pt-[18px]">
-              <span className="text-[15px] text-[#a9bbb3]">Price per vote</span>
-              <strong className="font-display text-[28px] text-white">{ghs(election.pricePerVote)}</strong>
+
+            <div className="mt-[22px] flex justify-between gap-3 border-t border-white/15 pt-[18px]">
+              <div>
+                <div className="text-[13px] text-[#a9bbb3]">Price per vote</div>
+                <div className="font-display text-[26px] font-bold text-white">{ghs(election.pricePerVote)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[13px] text-[#a9bbb3]">{closed ? 'Voting' : election.status === 'upcoming' ? 'Voting opens in' : 'Voting closes in'}</div>
+                <div className="mt-1 text-lg font-bold">{closed ? 'Closed' : clock.replace(/^Voting (closes|opens) in /, '')}</div>
+              </div>
             </div>
-            <p className="mt-4 text-[13px] text-[#a9bbb3]">{clock}</p>
           </div>
+          <p className="mx-1 mt-3.5 text-[13px] leading-relaxed text-muted">One paid vote per phone number in each category.</p>
         </aside>
       </div>
     </Section>

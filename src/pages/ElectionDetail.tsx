@@ -4,6 +4,7 @@ import { api, errorMessage, type Category, type Election, type Nomination } from
 import { Download, FileSpreadsheet, ListChecks, Loader2, Plus, Tags } from 'lucide-react'
 import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatusChip } from '../components/ui'
 import { downloadFlyer } from '../lib/flyer'
+import { useAuth } from '../store/auth'
 import CandidateModal from '../components/CandidateModal'
 import AddCandidatesModal from '../components/AddCandidatesModal'
 import ElectionSetupModal from '../components/ElectionSetupModal'
@@ -16,7 +17,7 @@ import { deleteElectionMessage } from '../lib/electionDelete'
 import ElectionCategories from '../components/ElectionCategories'
 import ElectionCover from '../components/ElectionCover'
 
-const SHORTCODE = import.meta.env.VITE_USSD_SHORTCODE as string | undefined
+const ENV_SHORTCODE = import.meta.env.VITE_USSD_SHORTCODE as string | undefined
 
 export default function ElectionDetail() {
   const { id } = useParams()
@@ -86,6 +87,16 @@ export default function ElectionDetail() {
 
   // The candidate's flyer, made in the browser and saved as a picture.
   const [flyerFor, setFlyerFor] = useState<string | null>(null)
+  const user = useAuth((s) => s.user)
+  // The USSD code a BallotPolls admin assigned to this organisation. undefined while loading, null when none yet.
+  const [ussd, setUssd] = useState<{ shortcode: string; label: string } | null | undefined>(undefined)
+  const SHORTCODE = ussd?.shortcode ?? ENV_SHORTCODE
+  useEffect(() => {
+    api
+      .get<{ shortcode: string; label: string } | null>('/organisation/ussd')
+      .then((r) => setUssd(r.data))
+      .catch(() => setUssd(null))
+  }, [])
   // The candidate whose details window is open.
   const [viewing, setViewing] = useState<{ n: Nomination; category: string } | null>(null)
   const makeFlyer = async (n: Nomination, categoryName: string) => {
@@ -102,6 +113,7 @@ export default function ElectionDetail() {
         shortcode: SHORTCODE,
         price: election.pricePerVote,
         closesAt: election.endsAt,
+        brand: user?.organisation?.brand ?? undefined,
       })
     } catch {
       toast.error('Could not make the flyer', 'Try again in a moment.')
@@ -177,11 +189,19 @@ export default function ElectionDetail() {
         }
         subtitle={formatRange(election.startsAt, election.endsAt)}
         action={
-          !closed && (
-            <LinkButton to={`/elections/${id}/edit`} variant="secondary">
-              Edit details
-            </LinkButton>
-          )
+          <div className="flex flex-wrap gap-3">
+            {/* Nobody can have voted before voting opens, so there is nothing to see yet. */}
+            {!upcoming && (
+              <LinkButton to={`/results?election=${id}`} variant={closed ? 'primary' : 'secondary'}>
+                View results
+              </LinkButton>
+            )}
+            {!closed && (
+              <LinkButton to={`/elections/${id}/edit`} variant="secondary">
+                Edit details
+              </LinkButton>
+            )}
+          </div>
         }
       />
 
@@ -265,7 +285,7 @@ export default function ElectionDetail() {
                               </span>
                             </button>
                             {!upcoming && <span className="hidden text-sm text-muted sm:inline">{n.voteCount.toLocaleString()} votes</span>}
-                            <span className="hidden text-[13px] text-muted sm:inline">No:</span>
+                            <span className="hidden text-[13px] text-muted sm:inline">Code</span>
                             <span className="rounded-lg bg-ground px-2.5 py-1 text-[15px] font-bold">{codeLabel(n.code)}</span>
                             <IconButton label={`Download flyer for ${n.candidate.name}`} tone="brand" disabled={flyerFor === n.id} onClick={() => makeFlyer(n, cat.name)}>
                               {flyerFor === n.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} strokeWidth={1.8} aria-hidden="true" />}
@@ -287,7 +307,7 @@ export default function ElectionDetail() {
             </ul>
           )}
           <p className="rounded-[10px] bg-ground px-4 py-3.5 text-sm leading-relaxed text-muted">
-            Voters pick a sub-category first, so a category with sub-categories is listed by its sub-categories. To rename or delete categories, go to{' '}
+            Each candidate has their own code for voting, shown as Code beside their name. A candidate who stands in two categories has a different code in each. To rename or delete categories, go to{' '}
             <Link to="/categories" className="font-semibold text-brand hover:underline">Categories</Link>.
           </p>
         </Card>
@@ -295,12 +315,23 @@ export default function ElectionDetail() {
         <aside className="flex min-w-[280px] flex-1 flex-col gap-4">
           <ElectionCover src={election.coverImageUrl} name={election.name} className="aspect-video w-full rounded-[14px]" />
           <div className="rounded-[14px] bg-ink p-6 text-[#e8efeb]">
-            <div className="text-[13px] text-[#a9bbb3]">{SHORTCODE ? 'Voters dial' : 'Voters enter event code'}</div>
-            {SHORTCODE && <div className="mt-2 font-display text-4xl font-bold">{SHORTCODE}</div>}
-            <div className={`${SHORTCODE ? 'mt-2.5 text-[15px]' : 'mt-2'}`}>
-              {SHORTCODE && 'Then enter event code '}
-              <strong className="rounded-md bg-accent px-2 py-0.5 text-ink">{election.eventCode}</strong>
-            </div>
+            {SHORTCODE ? (
+              <>
+                <div className="text-[13px] text-[#a9bbb3]">Voters dial</div>
+                <div className="mt-2 font-display text-4xl font-bold">{SHORTCODE}</div>
+                <div className="mt-2.5 text-[15px] leading-relaxed">
+                  Then enter the candidate's code, shown as <strong className="rounded-md bg-accent px-2 py-0.5 text-ink">Code</strong> beside each name, and confirm.
+                </div>
+              </>
+            ) : ussd === undefined ? (
+              <div className="skeleton h-16 rounded-lg" />
+            ) : (
+              <>
+                <div className="text-[13px] text-[#a9bbb3]">Voting by phone</div>
+                <div className="mt-2 text-base font-semibold">Your USSD code has not been assigned yet.</div>
+                <div className="mt-1.5 text-[13px] leading-relaxed text-[#a9bbb3]">BallotPolls sets it up for you once your elections and candidates are ready. Each candidate already has their code.</div>
+              </>
+            )}
           </div>
           <Card className="p-5">
             <div className="text-sm font-semibold">Price per vote</div>

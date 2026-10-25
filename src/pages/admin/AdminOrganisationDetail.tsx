@@ -4,6 +4,7 @@ import { CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElectionRow, type AdminOrganisationDetail } from '../../lib/api'
 import { Button, Card, EmptyState, IconButton, IconLink, Input, PageHeader, Select, StatusChip } from '../../components/ui'
 import Modal from '../../components/Modal'
+import UssdServiceModal from '../../components/admin/UssdServiceModal'
 import DataTable, { type Column } from '../../components/DataTable'
 import { DetailPageSkeleton } from '../../components/Loading'
 import { OrgChip } from '../../components/admin/parts'
@@ -26,6 +27,7 @@ export default function AdminOrganisationDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [typed, setTyped] = useState('')
   const [verifying, setVerifying] = useState<string | null>(null)
+  const [editingUssd, setEditingUssd] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -110,7 +112,7 @@ export default function AdminOrganisationDetailPage() {
   }
 
   const columns: Column<AdminElectionRow>[] = [
-    { key: 'name', header: 'Election', sortValue: (e) => e.name, mobileWide: true, cell: (e) => <span className="font-semibold">{e.name}</span> },
+    { key: 'name', header: 'Election', sortValue: (e) => e.name, mobileWide: true, cell: (e) => <Link to={`/admin/elections/${e.id}`} className="font-semibold hover:underline">{e.name}</Link> },
     { key: 'code', header: 'Code', className: 'font-bold tracking-wider', cell: (e) => e.eventCode },
     { key: 'status', header: 'Status', sortValue: (e) => e.status, cell: (e) => <StatusChip status={e.status} /> },
     { key: 'closes', header: 'Closes', sortValue: (e) => e.endsAt, className: 'whitespace-nowrap', cell: (e) => formatDateTime(e.endsAt) },
@@ -124,7 +126,7 @@ export default function AdminOrganisationDetailPage() {
       align: 'right',
       cell: (e) => (
         <div className="flex justify-end gap-2">
-          <IconLink to={`/admin/elections/${e.id}`} label={`Edit ${e.name}`}>
+          <IconLink to={`/admin/elections/${e.id}/edit`} label={`Edit ${e.name}`}>
             <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
           </IconLink>
           <span title={e.locked ? 'It has payments, so it cannot be deleted.' : undefined}>
@@ -236,6 +238,22 @@ export default function AdminOrganisationDetailPage() {
               ))}
             </Card>
             <Card>
+              <h2 className="mb-2 font-display text-xl font-bold">USSD voting code</h2>
+              {org.ussd ? (
+                <>
+                  <div className="font-display text-3xl font-bold tracking-tight">{org.ussd.shortcode}</div>
+                  <div className="mt-1 text-sm text-muted">
+                    "Welcome to {org.ussd.label}" · {org.ussd.active ? 'on' : 'switched off'}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm leading-relaxed text-muted">No USSD code yet. Assign the one Hubtel gave this client, and voters can start voting by phone.</p>
+              )}
+              <Button variant="secondary" onClick={() => setEditingUssd(true)} className="mt-4">
+                {org.ussd ? 'Edit code and Hubtel addresses' : 'Assign a USSD code'}
+              </Button>
+            </Card>
+            <Card>
               <h2 className="mb-1.5 font-display text-xl font-bold">Delete organisation</h2>
               <p className="mb-4 text-sm leading-relaxed text-muted">Permanently removes the organisation and all of its data: organisers, elections, candidates, categories, payments and withdrawals. This cannot be undone. To stop it without losing anything, suspend it instead.</p>
               <Button variant="secondary" onClick={() => { setTyped(''); setDeleting(true) }} className="text-danger">
@@ -245,6 +263,8 @@ export default function AdminOrganisationDetailPage() {
           </div>
         </section>
       )}
+
+      {editingUssd && <UssdServiceModal orgId={org.id} orgName={org.name} service={org.ussd} onClose={() => setEditingUssd(false)} onSaved={load} />}
 
       {deleting && (
         <Modal
@@ -280,7 +300,7 @@ export default function AdminOrganisationDetailPage() {
               This organisation has not created an election.
             </EmptyState>
           ) : (
-            <DataTable columns={columns} rows={org.elections} rowKey={(e) => e.id} caption="Elections" initialSort={{ key: 'closes', dir: 'desc' }} minWidth={1000} />
+            <DataTable columns={columns} rows={org.elections} rowKey={(e) => e.id} caption="Elections" onRowClick={(e) => navigate(`/admin/elections/${e.id}`)} initialSort={{ key: 'closes', dir: 'desc' }} minWidth={1000} />
           )}
         </section>
       )}

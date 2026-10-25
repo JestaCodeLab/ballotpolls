@@ -33,6 +33,8 @@ const TYPES: Record<string, { label: string; tone: Tone }> = {
   withdrawal_rejected: { label: 'Withdrawal rejected', tone: 'red' },
   organisation_suspended: { label: 'Organisation suspended', tone: 'red' },
   organisation_reactivated: { label: 'Organisation reactivated', tone: 'blue' },
+  organisation_created: { label: 'Organisation created', tone: 'green' },
+  ussd_service_saved: { label: 'USSD code saved', tone: 'blue' },
   sms_sent: { label: 'SMS sent', tone: 'grey' },
 }
 

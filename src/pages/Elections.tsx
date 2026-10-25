@@ -240,7 +240,7 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
     <div className="min-w-[100px] flex-1">
       <div className="text-xs text-muted">{label}</div>
       <div className="mt-0.5 font-semibold">
-        {/* The event code is what voters type, so it gets the same yellow chip used on the election page. */}
+        {/* The event code names the election on the website, so it gets the same yellow chip used on the election page. */}
         {highlight ? <span className="inline-block rounded bg-accent px-2 py-0.5 text-[13px] font-bold tracking-wider text-ink">{value}</span> : value}
       </div>
     </div>

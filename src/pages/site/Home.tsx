@@ -8,8 +8,8 @@ import { EventCard, EventGridSkeleton, Section } from '../../components/site/par
 
 const STEPS = [
   ['Dial the shortcode', 'Dial the short code shown on the election. It works on any phone, with no app and no internet.'],
-  ['Enter the event code and choose', 'Type the election’s event code, pick a category, then reply with the number of your candidate.'],
-  ['Pay by mobile money', 'Confirm the payment prompt on your phone. Your vote counts as soon as the payment is confirmed.'],
+  ['Enter your candidate’s code', 'Every candidate has their own code, shown on their flyer and on the election page. Type it, then confirm.'],
+  ['Pay by mobile money', 'Approve the payment prompt on your phone. Your vote counts as soon as the payment is confirmed.'],
 ]
 
 const FEATURES = [

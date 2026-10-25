@@ -83,7 +83,7 @@ export default function AddCandidates() {
       const n = data.added.length
       toast.success(
         `${n} candidate${n === 1 ? '' : 's'} added`,
-        data.skipped.length ? `${data.skipped.length} already in this category, skipped.` : `Now standing in ${category?.name}.`,
+        data.skipped.length ? `${data.skipped.length} already in this category, skipped.` : `Added to ${category?.name}.`,
       )
       navigate(`/elections/${id}`)
     } catch (err) {
@@ -154,7 +154,7 @@ export default function AddCandidates() {
                         <div className="min-w-0 flex-1">
                           <div className="text-base font-semibold">{c.name}</div>
                           <div className="text-[13px] text-muted">
-                            {added ? 'Already in this category' : other.length ? `Also standing in ${other.join(', ')}` : 'Not in any category of this election'}
+                            {added ? 'Already in this category' : other.length ? `Also in ${other.join(', ')}` : 'Not in any category of this election'}
                           </div>
                         </div>
                       </label>
@@ -168,7 +168,7 @@ export default function AddCandidates() {
 
           <aside className="flex min-w-[280px] flex-[2] flex-col gap-4">
             <Card>
-              <h2 className="font-display text-xl font-bold">Standing in {category?.name}</h2>
+              <h2 className="font-display text-xl font-bold">Candidates in {category?.name}</h2>
               <p className="mb-3.5 mt-1 text-sm text-muted">Voters type the code to pick them.</p>
               <ol>
                 {inCategory.map((n) => (

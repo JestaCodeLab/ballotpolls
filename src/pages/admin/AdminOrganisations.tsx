@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Ban, RotateCcw } from 'lucide-react'
 import { Building2 } from 'lucide-react'
 import { api, errorMessage, type AdminOrganisation } from '../../lib/api'
-import { EmptyState, IconButton, PageHeader } from '../../components/ui'
+import { Button, EmptyState, IconButton, PageHeader } from '../../components/ui'
+import CreateOrganisationModal from '../../components/admin/CreateOrganisationModal'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
 import { OrgChip, RefreshButton, SearchBox, useAdminList } from '../../components/admin/parts'
@@ -16,6 +17,7 @@ export default function AdminOrganisations() {
   const [q, setQ] = useState('')
   const { rows, total, loaded, loading, reload, pagination, setRows } = useAdminList<AdminOrganisation>('organisations', { q: q.trim() || undefined })
   const [busy, setBusy] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
   const navigate = useNavigate()
 
   const toggle = async (o: AdminOrganisation) => {
@@ -69,7 +71,8 @@ export default function AdminOrganisations() {
 
   return (
     <>
-      <PageHeader title="Organisations" subtitle="Everyone running events on BallotPolls." />
+      <PageHeader title="Organisations" subtitle="Everyone running events on BallotPolls." action={<Button onClick={() => setCreating(true)}>Create organisation</Button>} />
+      {creating && <CreateOrganisationModal onClose={() => setCreating(false)} onCreated={reload} />}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SearchBox value={q} onChange={setQ} label="Search organisations" placeholder="Search by organisation name" />
         <RefreshButton onClick={reload} busy={loading} />

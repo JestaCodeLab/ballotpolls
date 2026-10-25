@@ -6,6 +6,7 @@ import { Avatar, Button } from './ui'
 import Modal from './Modal'
 import { downloadFlyer, renderFlyer, type FlyerData } from '../lib/flyer'
 import { codeLabel, ghs } from '../lib/format'
+import { useAuth } from '../store/auth'
 
 interface Props {
   nomination: Nomination
@@ -31,6 +32,7 @@ export default function CandidateModal({ nomination: n, categoryName, election, 
   const [flyer, setFlyer] = useState<{ blob: Blob; url: string } | null>(null)
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
+  const brand = useAuth((s) => s.user?.organisation?.brand)
 
   const data: FlyerData = {
     candidateName: n.candidate.name,
@@ -42,6 +44,7 @@ export default function CandidateModal({ nomination: n, categoryName, election, 
     shortcode,
     price: election.pricePerVote,
     closesAt: election.endsAt,
+    brand: brand ?? undefined,
   }
 
   // The bio is not in the nominations list, so it is fetched when the window opens.
@@ -118,7 +121,7 @@ export default function CandidateModal({ nomination: n, categoryName, election, 
             </div>
           </div>
           <dl className="mt-5">
-            <Row k="Number" v={`No: ${codeLabel(n.code)}`} />
+            <Row k="Code" v={codeLabel(n.code)} />
             {election.status !== 'upcoming' && <Row k="Votes" v={n.voteCount.toLocaleString()} />}
             <Row k="Event code" v={election.eventCode} />
             <Row k="Price per vote" v={ghs(election.pricePerVote)} />

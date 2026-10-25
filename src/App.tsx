@@ -39,8 +39,10 @@ import AdminWithdrawals from './pages/admin/AdminWithdrawals'
 import AdminOrganisationDetail from './pages/admin/AdminOrganisationDetail'
 import AdminOrganiserDetail from './pages/admin/AdminOrganiserDetail'
 import AdminElectionEdit from './pages/admin/AdminElectionEdit'
+import AdminElectionDetail from './pages/admin/AdminElectionDetail'
 import AdminSms from './pages/admin/sms/AdminSms'
 import AdminActivity from './pages/admin/AdminActivity'
+import AdminUssd from './pages/admin/AdminUssd'
 import AdminSmsCredit from './pages/admin/sms/AdminSmsCredit'
 import AdminSmsReport from './pages/admin/sms/AdminSmsReport'
 import AdminSmsCreditReturn from './pages/admin/sms/AdminSmsCreditReturn'
@@ -114,9 +116,12 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:id" element={<AdminOrganiserDetail />} />
             <Route path="elections" element={<AdminElections />} />
-            <Route path="elections/:id" element={<AdminElectionEdit />} />
+            <Route path="elections/:id" element={<AdminElectionDetail />} />
+            <Route path="elections/:id/edit" element={<AdminElectionEdit />} />
             <Route path="payments" element={<AdminPayments />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="results" element={<Results admin />} />
+            <Route path="ussd" element={<AdminUssd />} />
             <Route path="activity" element={<AdminActivity />} />
             <Route path="sms" element={<AdminSms />} />
             <Route path="sms/credit" element={<AdminSmsCredit />} />

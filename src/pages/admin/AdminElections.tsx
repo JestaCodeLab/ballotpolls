@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, RotateCcw } from 'lucide-react'
+import { BarChart3, CalendarDays, RotateCcw } from 'lucide-react'
 import { api, errorMessage, type AdminElection } from '../../lib/api'
-import { EmptyState, IconButton, PageHeader, StatusChip } from '../../components/ui'
+import { EmptyState, IconButton, IconLink, PageHeader, StatusChip } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
 import { RefreshButton, SearchBox, useAdminList } from '../../components/admin/parts'
@@ -61,7 +61,22 @@ export default function AdminElections() {
             ),
           },
         ]
-      : base
+      : [
+          ...base,
+          {
+            key: 'actions',
+            header: 'Actions',
+            hideHeader: true,
+            align: 'right' as const,
+            // Nobody can have voted before voting opens.
+            cell: (e: AdminElection) =>
+              e.status === 'upcoming' ? null : (
+                <IconLink to={`/admin/results?election=${e.id}`} label={`View results for ${e.name}`} tone="brand">
+                  <BarChart3 size={16} strokeWidth={1.8} aria-hidden="true" />
+                </IconLink>
+              ),
+          },
+        ]
 
   return (
     <>

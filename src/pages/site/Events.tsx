@@ -30,7 +30,7 @@ export default function Events() {
 
   useSeo({
     title: 'Elections you can vote in by phone | BallotPolls',
-    description: 'Find an election, see who is standing and learn how to vote. Dial the short code from any phone and pay with mobile money.',
+    description: 'Find an election, see the candidates and learn how to vote. Dial the short code from any phone and pay with mobile money.',
     path: '/events',
     image: ogImage('events'),
     jsonLd: items?.length
@@ -55,7 +55,7 @@ export default function Events() {
       <div className="border-b border-line bg-white">
         <Section className="py-12 md:py-14">
           <h1 className="font-display text-4xl font-bold tracking-tight md:text-5xl">Elections</h1>
-          <p className="mt-2.5 max-w-[620px] text-lg text-muted">Find an election, see who is standing, and learn how to vote.</p>
+          <p className="mt-2.5 max-w-[620px] text-lg text-muted">Find an election, see the candidates, and learn how to vote.</p>
         </Section>
       </div>
       <Section className="pb-[72px] pt-10">

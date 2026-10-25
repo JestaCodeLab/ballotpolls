@@ -55,7 +55,7 @@ export function CandidateCard({ electionSlug, c, showVotes = true }: { electionS
             <span />
           )}
           <div className="flex items-center gap-2 text-[13px] text-muted">
-            No: <span className="rounded-lg bg-ground px-2.5 py-0.5 text-base font-bold text-ink">{c.code}</span>
+            Code <span className="rounded-lg bg-ground px-2.5 py-0.5 text-base font-bold text-ink">{c.code}</span>
           </div>
         </div>
       </div>
@@ -94,5 +94,32 @@ export function EventGridSkeleton({ count = 3 }: { count?: number }) {
         </div>
       ))}
     </div>
+  )
+}
+
+// "Elections / Ghana Youth Awards / Ama Boateng", kept on one line: long names are cut short with … (the full name shows on
+// hover), and the page you are on is given the most room.
+export function Crumbs({ items }: { items: { label: string; to?: string }[] }) {
+  return (
+    <nav aria-label="Breadcrumb" className="ml-auto flex min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 text-sm text-muted">
+      {items.map((c, i) => {
+        const last = i === items.length - 1
+        return (
+          // On a phone only the page you are on is shown, beside the Go Back button; the full trail comes back from sm up.
+          <span key={`${i}-${c.label}`} className={`items-center gap-1.5 ${last ? 'flex min-w-0 shrink' : 'hidden min-w-0 shrink-[3] sm:flex'}`}>
+            {i > 0 && <span aria-hidden="true" className="hidden sm:inline">/</span>}
+            {c.to && !last ? (
+              <Link to={c.to} title={c.label} className="block max-w-[11rem] truncate hover:underline">
+                {c.label}
+              </Link>
+            ) : (
+              <strong aria-current={last ? 'page' : undefined} title={c.label} className="block max-w-[16rem] truncate font-semibold text-ink">
+                {c.label}
+              </strong>
+            )}
+          </span>
+        )
+      })}
+    </nav>
   )
 }

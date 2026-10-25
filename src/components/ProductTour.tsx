@@ -37,7 +37,7 @@ const STEPS: Step[] = [
     target: 'elections',
     to: '/elections',
     title: 'Run an election',
-    body: 'Set the voting window and the price per vote, then nominate candidates. Voters dial the shortcode and enter your event code to vote.',
+    body: 'Set the voting window and the price per vote, then nominate candidates. Each candidate gets their own code; voters dial your USSD code, enter it and pay.',
   },
   {
     target: 'results',

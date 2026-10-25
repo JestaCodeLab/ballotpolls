@@ -6,6 +6,7 @@ import { toast } from '../store/toast'
 import { Button, Card, Input, PageHeader, Switch, PasswordInput } from '../components/ui'
 import { firstProblem } from '../lib/validate'
 import { formatPhone, toLocalPhone } from '../lib/phone'
+import { DEFAULT_BRAND, MIN_ACCENT_CONTRAST, MIN_MAIN_CONTRAST, PRESETS, contrast, isHex, mix, onColor } from '../lib/color'
 
 const SECTIONS = [
   { id: 'profile', label: 'Profile' },
@@ -117,19 +118,69 @@ function ProfileSection() {
   )
 }
 
+// One colour: a picker and a typed value that stay in step, with a note on whether it is readable.
+function ColourField({ label, hint, value, onChange, problem }: { label: string; hint: string; value: string; onChange: (v: string) => void; problem: string | null }) {
+  const [text, setText] = useState(value)
+  // The picker (or a preset) changed the colour from outside: show it.
+  useEffect(() => setText(value), [value])
+  const type = (v: string) => {
+    const t = v.startsWith('#') ? v : `#${v}`
+    setText(t.slice(0, 7))
+    if (isHex(t)) onChange(t.toUpperCase())
+  }
+  return (
+    <div>
+      <div className="mb-1.5 text-sm font-medium">
+        {label} <span className="font-normal text-muted">{hint}</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <input type="color" aria-label={`${label}, colour picker`} value={value} onChange={(e) => onChange(e.target.value.toUpperCase())} className="h-[46px] w-14 shrink-0 cursor-pointer rounded-[10px] border border-field bg-white p-1" />
+        <input
+          aria-label={`${label}, hex value`}
+          value={text}
+          onChange={(e) => type(e.target.value)}
+          onBlur={() => setText(value)}
+          maxLength={7}
+          spellCheck={false}
+          className="min-h-[46px] w-32 rounded-[10px] border border-field bg-white px-3.5 font-mono text-[15px] uppercase outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+        />
+      </div>
+      <p role={problem ? 'alert' : undefined} className={`mt-1.5 text-[13px] ${problem ? 'text-danger' : 'text-[#0b5a43]'}`}>
+        {problem ?? 'Readable'}
+      </p>
+    </div>
+  )
+}
+
 function OrganisationSection() {
   const user = useAuth((s) => s.user)!
   const setUser = useAuth((s) => s.setUser)
   const [name, setName] = useState(user.organisation?.name ?? '')
+  const saved = user.organisation?.brand
+  const [primary, setPrimary] = useState((saved?.primary ?? DEFAULT_BRAND.primary).toUpperCase())
+  const [accent, setAccent] = useState((saved?.accent ?? DEFAULT_BRAND.accent).toUpperCase())
   const [busy, setBusy] = useState(false)
+
+  // The same checks the server makes, so a colour that would be refused is flagged before saving.
+  const mainContrast = contrast(primary, '#FFFFFF')
+  const accentContrast = contrast(accent, primary)
+  const mainProblem = mainContrast < MIN_MAIN_CONTRAST ? `Too light: white writing on it would be hard to read (contrast ${mainContrast.toFixed(1)}, needs ${MIN_MAIN_CONTRAST}).` : null
+  const accentProblem = accentContrast < MIN_ACCENT_CONTRAST ? `Does not stand out against the main colour (contrast ${accentContrast.toFixed(1)}, needs ${MIN_ACCENT_CONTRAST}).` : null
+  const isDefault = primary === DEFAULT_BRAND.primary.toUpperCase() && accent === DEFAULT_BRAND.accent.toUpperCase()
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (name.trim().length < 2) return toast.error('Enter your organisation name')
+    if (mainProblem || accentProblem) return toast.error('Fix the colours first', mainProblem ?? accentProblem ?? undefined)
     setBusy(true)
     try {
-      const { data } = await api.patch<{ id: string; name: string }>('/organisation', { name })
-      setUser({ ...user, organisation: { ...user.organisation!, name: data.name } })
+      // Colours left at BallotPolls' own are sent as null, which clears them.
+      const { data } = await api.patch<{ id: string; name: string; brand: { primary: string | null; accent: string | null } | null }>('/organisation', {
+        name,
+        primaryColor: primary === DEFAULT_BRAND.primary.toUpperCase() ? null : primary,
+        accentColor: accent === DEFAULT_BRAND.accent.toUpperCase() ? null : accent,
+      })
+      setUser({ ...user, organisation: { ...user.organisation!, name: data.name, brand: data.brand } })
       setName(data.name)
       toast.success('Organisation updated')
     } catch (err) {
@@ -139,12 +190,91 @@ function OrganisationSection() {
     }
   }
 
+  const onAccent = onColor(accent)
+
   return (
-    <Section id="organisation" title="Organisation" subtitle="Shown in the sidebar and to your team.">
-      <form noValidate onSubmit={submit} className="flex flex-col gap-4">
+    <Section id="organisation" title="Organisation" subtitle="Shown in the sidebar and to your team. The colours are used on your candidate flyers.">
+      <form noValidate onSubmit={submit} className="flex flex-col gap-5">
         <Input label="Organisation name" value={name} onChange={(e) => setName(e.target.value)} aria-required="true" autoComplete="organization" maxLength={120} />
+
+        <div className="border-t border-line pt-5">
+          <h3 className="text-base font-semibold">Brand colours</h3>
+          <p className="mt-1 text-sm text-muted">Pick the colours of your organisation. The main colour is the flyer's background and must be dark enough for white writing; the accent is used for highlights and has to stand out against it.</p>
+
+          <div className="mt-4 flex flex-wrap gap-x-8 gap-y-5">
+            <div className="flex min-w-[260px] flex-1 flex-col gap-5">
+              <ColourField label="Main colour" hint="(background)" value={primary} onChange={setPrimary} problem={mainProblem} />
+              <ColourField label="Accent colour" hint="(highlights and the code badge)" value={accent} onChange={setAccent} problem={accentProblem} />
+              <div>
+                <div className="mb-2 text-sm font-medium">Or start from a pair</div>
+                <div className="flex flex-wrap gap-2">
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      title={p.name}
+                      aria-label={`Use ${p.name} colours`}
+                      onClick={() => {
+                        setPrimary(p.primary.toUpperCase())
+                        setAccent(p.accent.toUpperCase())
+                      }}
+                      className="flex h-11 w-[72px] items-center overflow-hidden rounded-[10px] border border-field hover:border-brand focus-visible:outline-2 focus-visible:outline-brand"
+                    >
+                      <span className="h-full flex-1" style={{ background: p.primary }} />
+                      <span className="h-full w-6" style={{ background: p.accent }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {!isDefault && (
+                <div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setPrimary(DEFAULT_BRAND.primary.toUpperCase())
+                      setAccent(DEFAULT_BRAND.accent.toUpperCase())
+                    }}
+                    className="min-h-10 px-4 text-sm"
+                  >
+                    Use BallotPolls colours
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* How the flyer's header will look, with the writing colours that are actually used. */}
+            <div aria-hidden="true" className="w-full max-w-[300px] flex-none rounded-[20px] p-5" style={{ background: primary, color: '#FFFFFF' }}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-display text-sm font-bold">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs" style={{ background: accent, color: onAccent }}>
+                    ✓
+                  </span>
+                  BallotPolls
+                </span>
+                <span className="rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-widest" style={{ borderColor: accent, color: accent }}>
+                  VOTE BY PHONE
+                </span>
+              </div>
+              <div className="mt-5 text-[10px] font-bold tracking-[0.16em]" style={{ color: accent }}>
+                VOTE FOR
+              </div>
+              <div className="font-display text-2xl font-bold leading-tight">Ama Boateng</div>
+              <div className="mt-3 flex items-center gap-3">
+                <span className="flex h-12 w-16 flex-col items-center justify-center rounded-xl text-center" style={{ background: accent, color: onAccent, border: `3px solid ${primary}` }}>
+                  <span className="text-[7px] font-bold tracking-widest">CODE</span>
+                  <span className="font-display text-sm font-bold leading-none">4821</span>
+                </span>
+                <span className="text-xs" style={{ color: mix('#FFFFFF', primary, 0.12) }}>
+                  Ghana Youth Awards
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div>
-          <Button type="submit" disabled={busy} className="min-h-[46px] px-6">
+          <Button type="submit" disabled={busy || Boolean(mainProblem || accentProblem)} className="min-h-[46px] px-6">
             {busy ? 'Saving…' : 'Save organisation'}
           </Button>
         </div>

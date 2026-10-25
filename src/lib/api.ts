@@ -43,7 +43,7 @@ export interface User {
   // When the current session ends (ISO). The app warns shortly before.
   sessionExpiresAt?: string
   notificationPrefs: NotificationPrefs
-  organisation?: { id: string; name: string; logoUrl?: string } | null
+  organisation?: { id: string; name: string; logoUrl?: string; brand?: { primary: string | null; accent: string | null } | null } | null
 }
 
 export type WithdrawalStatus = 'awaiting_code' | 'pending' | 'approved' | 'released' | 'rejected'
@@ -95,6 +95,8 @@ export interface Election {
   categoryCount?: number
   candidateCount?: number
   totalVotes?: number
+  // Only in the super admin's list: whose election it is.
+  organisation?: string
 }
 
 export interface Candidate {
@@ -133,6 +135,8 @@ export interface PublicElection {
   eventCode: string
   coverImageUrl?: string
   organisation?: string
+  // What voters dial for this election's organiser, once a BallotPolls admin has assigned one.
+  shortcode?: string
   updatedAt?: string
 }
 
@@ -159,7 +163,8 @@ export interface PublicCandidateDetail {
   election: PublicElection
   candidate: { slug: string; name: string; bio?: string; imageUrl?: string; totalVotes: number }
   standingIn: { categoryId: string; name: string; parentName?: string; code: number; votes: number }[]
-  othersInCategory: { name: string; candidates: PublicCandidate[] }
+  // The other candidates in each category the candidate stands in, keyed by category id.
+  othersByCategory: Record<string, PublicCandidate[]>
 }
 
 export type PaymentStatus = 'pending' | 'confirmed' | 'failed'
@@ -276,6 +281,8 @@ export interface AdminOrganisationDetail {
   paidOut: number
   organisers: { id: string; name: string; email: string; phone: string; phoneVerified: boolean }[]
   elections: AdminElectionRow[]
+  // The USSD code voters dial for this organisation, or null until one is assigned.
+  ussd: AdminUssdService | null
   // Everything deleting the organisation would remove.
   counts: { organisers: number; elections: number; candidates: number; categories: number; payments: number; withdrawals: number }
 }
@@ -360,4 +367,29 @@ export interface ActivityEntry {
   organisation: string | null
   orgId: string | null
   summary: string
+}
+
+/* ---------- Super admin USSD services ---------- */
+
+export interface AdminUssdService {
+  id: string
+  slug: string
+  // What voters dial, e.g. *713*2861#.
+  shortcode: string
+  // The name in the welcome line.
+  label: string
+  active: boolean
+  orgId: string
+  organisation?: string
+  // The two addresses to give Hubtel for this service. They carry the secret, so only super admins ever see them.
+  interactionUrl: string
+  fulfilmentUrl: string
+}
+
+export interface CreatedOrganisation {
+  id: string
+  organiserId: string
+  // The organiser's first password, shown once.
+  password: string
+  ussd: AdminUssdService | null
 }
