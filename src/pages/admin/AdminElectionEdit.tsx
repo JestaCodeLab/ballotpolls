@@ -65,10 +65,10 @@ export default function AdminElectionEditPage() {
   }
 
   const remove = async () => {
-    if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: `This permanently removes the election, its nominations and its event code ${el.eventCode}. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
+    if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: el.locked ? `Voting stops and the election disappears for the organisation. Its votes and payments are kept, so earnings do not change, and you can restore it from the Deleted tab. The organisation is told by notification.` : `This permanently removes the election, its nominations and its event code ${el.eventCode}. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
     try {
       await api.delete(`/admin/elections/${id}`)
-      toast.success('Election deleted')
+      toast.success(el.locked ? 'Election deleted. You can restore it from the Deleted tab.' : 'Election deleted')
       // Its own page is gone, so go to the organisation's.
       navigate(el.organisation ? `/admin/organisations/${el.organisation.id}` : '/admin/elections')
     } catch (err) {
@@ -90,11 +90,13 @@ export default function AdminElectionEditPage() {
             <DateTimeField label="Voting closes" value={endsAt} onChange={setEndsAt} minDate={startsAt.split('T')[0] || undefined} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Price per vote" hint="(GHS)" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} disabled={el.locked} />
+            <Input label="Price per vote" hint="(GHS)" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
             <Input label="Event code" hint="(cannot be changed)" value={el.eventCode} disabled readOnly />
           </div>
           <p className="-mt-2 text-[13px] text-muted">
-            {el.locked ? 'Payments exist for this election, so the price and opening time are locked.' : 'No payments yet, so everything can be changed. Once voters pay, the price and opening time are locked.'}
+            {el.locked
+              ? 'The price can be changed at any time and applies to votes from then on; payments already made keep the amount they were made for. The opening time is locked because voters have already paid.'
+              : 'The price can be changed at any time and applies to votes from then on. The opening time locks once voters have paid.'}
           </p>
         </Card>
 
@@ -105,7 +107,7 @@ export default function AdminElectionEditPage() {
             <p className="text-[13px] text-muted">Shown on the dashboard and the public pages. The organiser changes it from their own dashboard.</p>
           </Card>
           <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
-            <Button type="button" variant="secondary" disabled={el.locked} title={el.locked ? 'It has payments, so it cannot be deleted.' : undefined} onClick={remove} className="text-danger">
+            <Button type="button" variant="secondary" onClick={remove} className="text-danger">
               Delete election
             </Button>
             <div className="flex flex-wrap justify-end gap-2.5">

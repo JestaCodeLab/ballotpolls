@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { BarChart3, Coins, Vote } from 'lucide-react'
-import { api, type Category, type Election, type Nomination } from '../lib/api'
-import { Avatar, Card, EmptyState, LinkButton, PageHeader, Select, StatIcon } from '../components/ui'
+import { BarChart3, Coins, Pencil, Trash2, Vote } from 'lucide-react'
+import { api, errorMessage, type Category, type Election, type Nomination } from '../lib/api'
+import { Avatar, Card, EmptyState, IconButton, IconLink, LinkButton, PageHeader, Select, StatIcon } from '../components/ui'
 import { ghs } from '../lib/format'
 import { toast } from '../store/toast'
+import { confirmDelete } from '../store/confirm'
 import { ChartSkeleton, Loading, Skeleton } from '../components/Loading'
 
 const POLL_MS = 10_000
@@ -139,6 +140,19 @@ export default function Results({ admin = false }: { admin?: boolean }) {
       </>
     )
 
+  const removeElection = async () => {
+    if (!(await confirmDelete({ title: `Delete ${election.name}?`, message: 'Voting stops and the election disappears for the organisation. If it has payments, its votes and payments are kept and you can restore it from the Deleted tab on the Elections page; otherwise it is permanently removed.', confirmLabel: 'Delete election' }))) return
+    try {
+      await api.delete(`/admin/elections/${election.id}`)
+      toast.success('Election deleted', election.name)
+      const rest = (elections ?? []).filter((x) => x.id !== election.id)
+      setElections(rest)
+      setElectionId(rest[0]?.id ?? '')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
+  }
+
   const ago = updatedAt ? Math.max(0, Math.round((now - updatedAt) / 1000)) : null
   const clock =
     election.status === 'live'
@@ -161,9 +175,21 @@ export default function Results({ admin = false }: { admin?: boolean }) {
           </span>
         }
         action={
-          <div className="text-left sm:text-right">
-            <div className="text-[13px] text-muted">{clock.label}</div>
-            <div className="font-display text-3xl font-bold tracking-tight tabular-nums">{clock.value}</div>
+          <div className="flex items-center gap-4">
+            {admin && (
+              <div className="flex gap-2">
+                <IconLink to={`/admin/elections/${election.id}/edit`} label={`Edit ${election.name}`}>
+                  <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
+                </IconLink>
+                <IconButton label={`Delete ${election.name}`} tone="danger" onClick={removeElection}>
+                  <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+                </IconButton>
+              </div>
+            )}
+            <div className="text-left sm:text-right">
+              <div className="text-[13px] text-muted">{clock.label}</div>
+              <div className="font-display text-3xl font-bold tracking-tight tabular-nums">{clock.value}</div>
+            </div>
           </div>
         }
       />

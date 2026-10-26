@@ -308,6 +308,9 @@ export interface AdminElectionDetail extends AdminElectionRow {
   description: string
   coverImageUrl?: string
   organisation?: { id: string; name: string }
+  // The organisation's flyer colours and USSD code, for making candidate flyers.
+  brand?: { primary: string | null; accent: string | null } | null
+  shortcode?: string | null
 }
 
 /* ---------- Super admin SMS ---------- */

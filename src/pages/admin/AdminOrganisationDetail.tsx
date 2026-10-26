@@ -100,7 +100,7 @@ export default function AdminOrganisationDetailPage() {
   }
 
   const removeElection = async (el: AdminElectionRow) => {
-    if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: `This permanently removes the election, its nominations and its event code ${el.eventCode}. It has no payments. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
+    if (!(await confirmDelete({ title: `Delete ${el.name}?`, message: el.locked ? `Voting stops and the election disappears for the organisation. Its votes and payments are kept, so earnings do not change, and you can restore it from the Deleted tab on the Elections page.` : `This permanently removes the election, its nominations and its event code ${el.eventCode}. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
     try {
       await api.delete(`/admin/elections/${el.id}`)
       toast.success('Election deleted')
@@ -129,11 +129,9 @@ export default function AdminOrganisationDetailPage() {
           <IconLink to={`/admin/elections/${e.id}/edit`} label={`Edit ${e.name}`}>
             <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
           </IconLink>
-          <span title={e.locked ? 'It has payments, so it cannot be deleted.' : undefined}>
-            <IconButton label={`Delete ${e.name}`} tone="danger" disabled={e.locked} onClick={() => removeElection(e)}>
-              <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
-            </IconButton>
-          </span>
+          <IconButton label={`Delete ${e.name}`} tone="danger" onClick={() => removeElection(e)}>
+            <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+          </IconButton>
         </div>
       ),
     },

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BarChart3, CalendarDays, RotateCcw } from 'lucide-react'
+import { BarChart3, CalendarDays, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElection } from '../../lib/api'
 import { EmptyState, IconButton, IconLink, PageHeader, StatusChip } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
@@ -17,6 +17,20 @@ export default function AdminElections() {
   const [tab, setTab] = useState<Tab>('active')
   const { rows, total, loaded, loading, reload, pagination } = useAdminList<AdminElection>('elections', { q: q.trim() || undefined, deleted: tab === 'deleted' ? 'true' : undefined })
   const [busy, setBusy] = useState<string | null>(null)
+
+  const remove = async (e: AdminElection) => {
+    if (!(await confirmDelete({ title: `Delete ${e.name}?`, message: e.votes > 0 || e.revenue > 0 ? `Voting stops and the election disappears for the organisation. Its votes and payments are kept, so earnings do not change, and you can restore it from the Deleted tab.` : `This permanently removes the election, its nominations and its event code ${e.eventCode}. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
+    setBusy(e.id)
+    try {
+      await api.delete(`/admin/elections/${e.id}`)
+      toast.success('Election deleted', e.name)
+      reload()
+    } catch (err) {
+      toast.error(errorMessage(err))
+    } finally {
+      setBusy(null)
+    }
+  }
 
   // Brings back an election an organiser deleted. It returns with its nominations, votes and event code.
   const restore = async (e: AdminElection) => {
@@ -68,13 +82,22 @@ export default function AdminElections() {
             header: 'Actions',
             hideHeader: true,
             align: 'right' as const,
-            // Nobody can have voted before voting opens.
-            cell: (e: AdminElection) =>
-              e.status === 'upcoming' ? null : (
-                <IconLink to={`/admin/results?election=${e.id}`} label={`View results for ${e.name}`} tone="brand">
-                  <BarChart3 size={16} strokeWidth={1.8} aria-hidden="true" />
+            cell: (e: AdminElection) => (
+              <div className="flex justify-end gap-2">
+                {/* Nobody can have voted before voting opens. */}
+                {e.status !== 'upcoming' && (
+                  <IconLink to={`/admin/results?election=${e.id}`} label={`View results for ${e.name}`} tone="brand">
+                    <BarChart3 size={16} strokeWidth={1.8} aria-hidden="true" />
+                  </IconLink>
+                )}
+                <IconLink to={`/admin/elections/${e.id}/edit`} label={`Edit ${e.name}`}>
+                  <Pencil size={16} strokeWidth={1.8} aria-hidden="true" />
                 </IconLink>
-              ),
+                <IconButton label={`Delete ${e.name}`} tone="danger" disabled={busy === e.id} onClick={() => remove(e)}>
+                  <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+                </IconButton>
+              </div>
+            ),
           },
         ]
 

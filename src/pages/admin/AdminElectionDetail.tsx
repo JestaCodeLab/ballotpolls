@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { BarChart3, Coins, Pencil, Vote } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { BarChart3, Coins, Download, Image as ImageIcon, Loader2, Pencil, Trash2, Vote } from 'lucide-react'
 import { api, errorMessage, type AdminElectionDetail, type Category, type Nomination } from '../../lib/api'
-import { Avatar, Card, EmptyState, LinkButton, PageHeader, StatIcon, StatusChip } from '../../components/ui'
+import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatIcon, StatusChip } from '../../components/ui'
+import FlyerModal, { adminFlyerData } from '../../components/admin/FlyerModal'
+import { downloadFlyer } from '../../lib/flyer'
 import ElectionCover from '../../components/ElectionCover'
 import { DetailPageSkeleton } from '../../components/Loading'
 import { RefreshButton } from '../../components/admin/parts'
 import { formatDateTime, ghs } from '../../lib/format'
 import { toast } from '../../store/toast'
+import { confirmDelete } from '../../store/confirm'
 
 type Tab = 'details' | 'candidates'
 
@@ -21,12 +24,16 @@ const Row = ({ k, children }: { k: string; children: React.ReactNode }) => (
 // One election as the super admin sees it: its details, and every category with its candidates and how they are doing.
 export default function AdminElectionDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [e, setE] = useState<AdminElectionDetail | null>(null)
   const [noms, setNoms] = useState<Nomination[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('details')
   const [loading, setLoading] = useState(true)
+  // The candidate whose flyer is open, and the one being saved straight from the list.
+  const [flyer, setFlyer] = useState<{ n: Nomination; category: string } | null>(null)
+  const [saving, setSaving] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,9 +73,31 @@ export default function AdminElectionDetailPage() {
   if (error) return <p className="text-muted">{error}</p>
   if (!e) return <DetailPageSkeleton />
 
+  const saveFlyer = async (n: Nomination, category: string) => {
+    setSaving(n.id)
+    try {
+      await downloadFlyer(adminFlyerData(e, n, category))
+    } catch {
+      toast.error('Could not make the flyer', 'Try again in a moment.')
+    } finally {
+      setSaving(null)
+    }
+  }
+
   const back = e.organisation ? { to: `/admin/organisations/${e.organisation.id}`, label: `Back to ${e.organisation.name}` } : { to: '/admin/elections', label: 'Back to elections' }
   const started = e.status !== 'upcoming'
   const candidates = noms.length
+
+  const remove = async () => {
+    if (!(await confirmDelete({ title: `Delete ${e.name}?`, message: e.locked ? 'Voting stops and the election disappears for the organisation. Its votes and payments are kept, so earnings do not change, and you can restore it from the Deleted tab on the Elections page.' : `This permanently removes the election, its nominations and its event code ${e.eventCode}. The organisation is told by notification. This cannot be undone.`, confirmLabel: 'Delete election' }))) return
+    try {
+      await api.delete(`/admin/elections/${e.id}`)
+      toast.success('Election deleted', e.name)
+      navigate(e.organisation ? `/admin/organisations/${e.organisation.id}` : '/admin/elections')
+    } catch (err) {
+      toast.error(errorMessage(err))
+    }
+  }
 
   return (
     <>
@@ -93,6 +122,10 @@ export default function AdminElectionDetailPage() {
               <Pencil size={16} strokeWidth={1.8} aria-hidden="true" className="mr-2" />
               Edit
             </LinkButton>
+            <Button type="button" variant="secondary" onClick={remove} className="text-danger">
+              <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" className="mr-2" />
+              Delete
+            </Button>
           </div>
         }
       />
@@ -195,6 +228,14 @@ export default function AdminElectionDetailPage() {
                           <span className="w-12 text-right text-sm tabular-nums text-muted">{share.toFixed(share >= 10 || share === 0 ? 0 : 1)}%</span>
                         </div>
                         <div className="w-24 text-right font-display text-xl font-bold tabular-nums">{n.voteCount.toLocaleString()}</div>
+                        <div className="flex gap-2">
+                          <IconButton label={`Preview flyer for ${n.candidate.name}`} onClick={() => setFlyer({ n, category: g.name })}>
+                            <ImageIcon size={16} strokeWidth={1.8} aria-hidden="true" />
+                          </IconButton>
+                          <IconButton label={`Download flyer for ${n.candidate.name}`} tone="brand" disabled={saving === n.id} onClick={() => saveFlyer(n, g.name)}>
+                            {saving === n.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} strokeWidth={1.8} aria-hidden="true" />}
+                          </IconButton>
+                        </div>
                       </li>
                     )
                   })}
@@ -204,6 +245,7 @@ export default function AdminElectionDetailPage() {
           )}
         </section>
       )}
+      {flyer && <FlyerModal election={e} nomination={flyer.n} categoryName={flyer.category} onClose={() => setFlyer(null)} />}
     </>
   )
 }
