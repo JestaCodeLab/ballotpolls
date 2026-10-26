@@ -178,6 +178,7 @@ export interface PublicPayment {
   status: PaymentStatus
   // GHS
   amount: number
+  votes: number
   electionName: string
   electionSlug?: string
   categoryName: string
@@ -244,6 +245,8 @@ export interface AdminPayment {
   phone: string
   status: PaymentStatus
   amount: number
+  votes: number
+  callbackOwed?: boolean
   operator?: string
   election?: string
   organisation?: string

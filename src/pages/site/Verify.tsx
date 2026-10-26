@@ -195,6 +195,7 @@ export default function Verify() {
         ),
     },
     { key: 'category', header: 'Category', sortValue: (p) => p.categoryName, mobileWide: true, cell: (p) => p.categoryName },
+    { key: 'votes', header: 'Votes', sortValue: (p) => p.votes, cell: (p) => p.votes.toLocaleString() },
     { key: 'amount', header: 'Amount', sortValue: (p) => p.amount, className: 'whitespace-nowrap font-semibold', cell: (p) => ghs(p.amount) },
     {
       key: 'status',
