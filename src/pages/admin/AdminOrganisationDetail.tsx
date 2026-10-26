@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CalendarDays, Pencil, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElectionRow, type AdminOrganisationDetail } from '../../lib/api'
-import { Button, Card, EmptyState, IconButton, IconLink, Input, PageHeader, Select, StatusChip } from '../../components/ui'
+import { Button, Card, EmptyState, IconButton, IconLink, Input, PageHeader, Select, StatusChip, LinkButton } from '../../components/ui'
 import Modal from '../../components/Modal'
 import UssdServiceModal from '../../components/admin/UssdServiceModal'
 import DataTable, { type Column } from '../../components/DataTable'
@@ -292,7 +292,10 @@ export default function AdminOrganisationDetailPage() {
 
       {tab === 'elections' && (
         <section role="tabpanel" id="panel-elections" aria-labelledby="tab-elections" className="flex flex-col gap-3.5">
-          <p className="text-sm text-muted">An election with payments cannot be deleted.</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted">An election with payments is hidden, not erased, and can be restored from the Elections page.</p>
+            <LinkButton to={`/admin/elections/new?org=${org.id}`}>New election</LinkButton>
+          </div>
           {org.elections.length === 0 ? (
             <EmptyState icon={CalendarDays} title="No elections yet">
               This organisation has not created an election.

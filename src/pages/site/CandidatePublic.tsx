@@ -221,7 +221,7 @@ export default function CandidatePublic() {
               </div>
             </div>
           </div>
-          <p className="mx-1 mt-3.5 text-[13px] leading-relaxed text-muted">One paid vote per phone number in each category.</p>
+          <p className="mx-1 mt-3.5 text-[13px] leading-relaxed text-muted">Every paid vote counts. Vote as many times as you like.</p>
         </aside>
       </div>
     </Section>

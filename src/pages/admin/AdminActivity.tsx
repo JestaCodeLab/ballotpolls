@@ -28,6 +28,7 @@ const TYPES: Record<string, { label: string; tone: Tone }> = {
   election_restored: { label: 'Election restored', tone: 'blue' },
   election_price_changed: { label: 'Vote price changed', tone: 'amber' },
   candidates_imported: { label: 'Candidates imported', tone: 'green' },
+  candidate_removed: { label: 'Candidate removed', tone: 'amber' },
   withdrawal_requested: { label: 'Withdrawal requested', tone: 'amber' },
   withdrawal_approved: { label: 'Withdrawal approved', tone: 'blue' },
   withdrawal_released: { label: 'Withdrawal released', tone: 'green' },

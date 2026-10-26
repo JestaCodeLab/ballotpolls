@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { BarChart3, Coins, Download, Image as ImageIcon, Loader2, Pencil, Trash2, Vote } from 'lucide-react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BarChart3, Coins, Download, Image as ImageIcon, Loader2, Pencil, Plus, Trash2, Vote, X } from 'lucide-react'
 import { api, errorMessage, type AdminElectionDetail, type Category, type Nomination } from '../../lib/api'
 import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatIcon, StatusChip } from '../../components/ui'
+import AddCandidatesModal from '../../components/admin/AddCandidatesModal'
 import FlyerModal, { adminFlyerData } from '../../components/admin/FlyerModal'
 import { downloadFlyer } from '../../lib/flyer'
 import ElectionCover from '../../components/ElectionCover'
@@ -29,7 +30,10 @@ export default function AdminElectionDetailPage() {
   const [noms, setNoms] = useState<Nomination[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('details')
+  const [search] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(search.get('tab') === 'candidates' ? 'candidates' : 'details')
+  // Opens the add-candidates window; `category` is set when it was opened from one category's own button.
+  const [adding, setAdding] = useState<{ category?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   // The candidate whose flyer is open, and the one being saved straight from the list.
   const [flyer, setFlyer] = useState<{ n: Nomination; category: string } | null>(null)
@@ -81,6 +85,17 @@ export default function AdminElectionDetailPage() {
       toast.error('Could not make the flyer', 'Try again in a moment.')
     } finally {
       setSaving(null)
+    }
+  }
+
+  const removeNomination = async (n: Nomination) => {
+    if (!(await confirmDelete({ title: `Remove ${n.candidate.name}?`, message: 'They are taken out of this category and their voting code stops working. This is only possible while they have no votes.', confirmLabel: 'Remove candidate' }))) return
+    try {
+      await api.delete(`/admin/elections/${e.id}/nominations/${n.id}`)
+      toast.success('Candidate removed', n.candidate.name)
+      await load()
+    } catch (err) {
+      toast.error(errorMessage(err))
     }
   }
 
@@ -196,18 +211,33 @@ export default function AdminElectionDetailPage() {
 
       {tab === 'candidates' && (
         <section role="tabpanel" id="epanel-candidates" aria-labelledby="etab-candidates" className="flex flex-col gap-5">
+          {e.status !== 'closed' && (
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setAdding({})}>
+                <Plus size={16} strokeWidth={2} aria-hidden="true" className="mr-2" />
+                Add candidates
+              </Button>
+            </div>
+          )}
           {groups.length === 0 ? (
             <EmptyState icon={Vote} title="No candidates yet">
-              This election has no nominations. The organiser adds them from their dashboard.
+              This election has no nominations. Add candidates to a category, or the organiser can add them from their dashboard.
             </EmptyState>
           ) : (
             groups.map((g) => (
               <Card key={g.id} className="p-0">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-t-[14px] border-b border-l-[5px] border-line border-l-brand bg-brand-tint/60 px-5 py-3">
                   <h2 className="font-display text-xl font-bold">{g.name}</h2>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#0b5a43]">
-                    {g.rows.length} candidate{g.rows.length === 1 ? '' : 's'} · {g.total.toLocaleString()} vote{g.total === 1 ? '' : 's'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-[#0b5a43]">
+                      {g.rows.length} candidate{g.rows.length === 1 ? '' : 's'} · {g.total.toLocaleString()} vote{g.total === 1 ? '' : 's'}
+                    </span>
+                    {e.status !== 'closed' && (
+                      <IconButton label={`Add candidates to ${g.name}`} tone="brand" onClick={() => setAdding({ category: g.id })}>
+                        <Plus size={16} strokeWidth={2} aria-hidden="true" />
+                      </IconButton>
+                    )}
+                  </div>
                 </div>
                 <ol>
                   {g.rows.map((n, i) => {
@@ -235,6 +265,9 @@ export default function AdminElectionDetailPage() {
                           <IconButton label={`Download flyer for ${n.candidate.name}`} tone="brand" disabled={saving === n.id} onClick={() => saveFlyer(n, g.name)}>
                             {saving === n.id ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} strokeWidth={1.8} aria-hidden="true" />}
                           </IconButton>
+                          <IconButton label={`Remove ${n.candidate.name} from ${g.name}`} tone="danger" onClick={() => removeNomination(n)}>
+                            <X size={16} strokeWidth={2} aria-hidden="true" />
+                          </IconButton>
                         </div>
                       </li>
                     )
@@ -245,6 +278,7 @@ export default function AdminElectionDetailPage() {
           )}
         </section>
       )}
+      {adding && <AddCandidatesModal electionId={e.id} categoryId={adding.category} onClose={() => setAdding(null)} onDone={load} />}
       {flyer && <FlyerModal election={e} nomination={flyer.n} categoryName={flyer.category} onClose={() => setFlyer(null)} />}
     </>
   )

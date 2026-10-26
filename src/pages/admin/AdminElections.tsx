@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart3, CalendarDays, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { api, errorMessage, type AdminElection } from '../../lib/api'
-import { EmptyState, IconButton, IconLink, PageHeader, StatusChip } from '../../components/ui'
+import { EmptyState, IconButton, IconLink, LinkButton, PageHeader, StatusChip } from '../../components/ui'
 import DataTable, { type Column } from '../../components/DataTable'
 import { TableViewSkeleton } from '../../components/Loading'
 import { RefreshButton, SearchBox, useAdminList } from '../../components/admin/parts'
@@ -103,7 +103,7 @@ export default function AdminElections() {
 
   return (
     <>
-      <PageHeader title="Elections" subtitle="Every election across all organisations." />
+      <PageHeader title="Elections" subtitle="Every election across all organisations." action={<LinkButton to="/admin/elections/new">New election</LinkButton>} />
 
       <div role="tablist" aria-label="Election list" className="flex gap-1 border-b border-line">
         {(['active', 'deleted'] as const).map((t) => (
