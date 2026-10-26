@@ -1,4 +1,5 @@
 import { initials } from './format'
+import QRCode from 'qrcode'
 import { DEFAULT_BRAND, mix, onColor, rgb } from './color'
 
 // The candidate flyer: a 600 x 600 picture a candidate can share, drawn in the browser so nothing is uploaded or stored.
@@ -16,6 +17,8 @@ export interface FlyerData {
   shortcode?: string
   // The organisation's colours: the flyer's background and its accent. Unset means BallotPolls' own.
   brand?: { primary?: string | null; accent?: string | null }
+  // Where the QR code leads: the candidate's own page on the website. Left out, the flyer has no QR code.
+  profileUrl?: string
   // GHS per vote.
   price: number
   // ISO time voting closes.
@@ -255,66 +258,91 @@ export async function renderFlyer(d: FlyerData, scale = 2): Promise<Blob> {
     y += 5
   }
 
-  // How to vote card.
+  // How to vote card: the steps and the price on the left, a QR code to the candidate's own page on the right.
   ctx.fillStyle = '#F4F7F5'
   roundRect(ctx, 32, 398, 536, 170, 20)
   ctx.fill()
   ctx.fillStyle = '#5B6B65'
   ctx.font = `700 12px ${BODY}`
-  spaced(ctx, 'HOW TO VOTE', 54, 424, 1.7)
+  spaced(ctx, 'HOW TO VOTE', 54, 422, 1.7)
 
-  const colW = (492 - 24) / 3
-  const steps: { n: string; a: string; b: string; strong: boolean }[] = [
-    { n: '1', a: 'Dial', b: d.shortcode ?? 'short code', strong: true },
-    { n: '2', a: 'Enter candidate code', b: String(d.number), strong: true },
-    { n: '3', a: 'Then confirm', b: 'and pay', strong: true },
+  const steps: { n: string; a: string; b: string; wide?: boolean }[] = [
+    { n: '1', a: 'Dial', b: d.shortcode ?? 'the short code' },
+    // The candidate's code is the one to read out, so it is set a little wider.
+    { n: '2', a: 'Enter candidate code', b: String(d.number), wide: true },
+    { n: '3', a: 'Then confirm', b: 'and pay' },
   ]
   steps.forEach((s, i) => {
-    const sx = 54 + i * (colW + 12)
+    const cy = 447 + i * 28
     ctx.fillStyle = stepColor
     ctx.beginPath()
-    ctx.arc(sx + 12, 454, 12, 0, Math.PI * 2)
+    ctx.arc(65, cy, 11, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = `700 13px ${BODY}`
+    ctx.font = `700 12px ${BODY}`
     ctx.textAlign = 'center'
-    ctx.fillText(s.n, sx + 12, 458.5)
+    ctx.fillText(s.n, 65, cy + 4.2)
     ctx.textAlign = 'left'
     ctx.fillStyle = '#3F4F49'
-    ctx.font = `500 13px ${BODY}`
-    ctx.fillText(s.a, sx + 33, 450)
+    ctx.font = `500 14px ${BODY}`
+    ctx.fillText(s.a, 85, cy + 5)
+    const bx2 = 85 + ctx.measureText(s.a).width + 9
     ctx.fillStyle = DARK
     ctx.font = `700 17px ${BODY}`
-    // The candidate's code is the one to read out, so it is set a little wider.
-    if (i === 1) spaced(ctx, s.b, sx + 33, 470, 1.5)
-    else ctx.fillText(s.b, sx + 33, 470)
+    if (s.wide) spaced(ctx, s.b, bx2, cy + 6, 1.5)
+    else ctx.fillText(s.b, bx2, cy + 6)
   })
 
   ctx.strokeStyle = '#DCE4E0'
   ctx.lineWidth = 1
   ctx.beginPath()
-  ctx.moveTo(54, 494)
-  ctx.lineTo(546, 494)
+  ctx.moveTo(54, 525)
+  ctx.lineTo(420, 525)
   ctx.stroke()
 
   const price = `GHS ${d.price.toFixed(2)}`
   ctx.fillStyle = DARK
   ctx.font = `700 20px ${DISPLAY}`
-  ctx.fillText(price, 54, 527)
+  ctx.fillText(price, 54, 551)
   const pw2 = ctx.measureText(`${price} `).width
   ctx.fillStyle = '#5B6B65'
   ctx.font = `500 13px ${BODY}`
-  ctx.fillText('per vote', 54 + pw2, 527)
+  ctx.fillText('per vote', 54 + pw2, 551)
 
   const when = closing(d.closesAt)
   ctx.font = `700 13px ${BODY}`
   const whenW = ctx.measureText(when).width
   ctx.fillStyle = DARK
-  ctx.fillText(when, 546 - whenW, 526)
+  ctx.fillText(when, 420 - whenW, 550)
   ctx.font = `500 13px ${BODY}`
   ctx.fillStyle = '#5B6B65'
-  const label = 'Voting closes '
-  ctx.fillText(label, 546 - whenW - ctx.measureText(label).width, 526)
+  const label = 'Closes '
+  ctx.fillText(label, 420 - whenW - ctx.measureText(label).width, 550)
+
+  // The QR code: modules in the organisation's main colour on a white plate, with a quiet margin so phones read it easily.
+  if (d.profileUrl) {
+    const qr = QRCode.create(d.profileUrl, { errorCorrectionLevel: 'M' })
+    const plate = 108
+    const px0 = 546 - plate
+    const py0 = 418
+    ctx.fillStyle = '#FFFFFF'
+    roundRect(ctx, px0, py0, plate, plate, 14)
+    ctx.fill()
+    const margin = 8
+    const cell = (plate - margin * 2) / qr.modules.size
+    ctx.fillStyle = ink
+    for (let r = 0; r < qr.modules.size; r++) {
+      for (let c = 0; c < qr.modules.size; c++) {
+        // A hair of overlap so no seams show between neighbouring squares.
+        if (qr.modules.get(r, c)) ctx.fillRect(px0 + margin + c * cell, py0 + margin + r * cell, cell + 0.35, cell + 0.35)
+      }
+    }
+    ctx.fillStyle = '#5B6B65'
+    ctx.font = `600 11px ${BODY}`
+    ctx.textAlign = 'center'
+    ctx.fillText('Scan to follow the votes', px0 + plate / 2, py0 + plate + 15)
+    ctx.textAlign = 'left'
+  }
 
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not make the picture'))), 'image/png'))
 }

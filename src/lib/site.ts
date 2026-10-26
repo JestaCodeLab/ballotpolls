@@ -19,3 +19,7 @@ export const ogImage = (name: keyof typeof OG_FILES) => absoluteUrl(`/og/${OG_FI
 
 export const DEFAULT_DESCRIPTION =
   'Run an election anyone can vote in from a basic phone. Voters dial a short code and pay by mobile money. Set up categories and candidates and follow results live.'
+
+// A candidate's short address, for the QR code on their flyer: /v/<nomination id>. It sends the visitor on to the candidate's
+// full page, and stays short so the QR code stays easy to scan.
+export const candidateShortUrl = (nominationId: string) => absoluteUrl(`/v/${nominationId}`)

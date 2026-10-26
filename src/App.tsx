@@ -27,6 +27,7 @@ import Events from './pages/site/Events'
 import EventDetail from './pages/site/EventDetail'
 import CandidatePublic from './pages/site/CandidatePublic'
 import SiteNotFound from './pages/site/SiteNotFound'
+import ShortLink from './pages/site/ShortLink'
 import Verify from './pages/site/Verify'
 import Settings from './pages/Settings'
 import AdminLayout from './components/admin/AdminLayout'
@@ -99,6 +100,7 @@ export default function App() {
             <Route path="verify" element={<Verify />} />
             <Route path="events/:slug" element={<EventDetail />} />
             <Route path="events/:slug/candidates/:candidateSlug" element={<CandidatePublic />} />
+            <Route path="v/:id" element={<ShortLink />} />
             <Route path="*" element={<SiteNotFound />} />
           </Route>
 

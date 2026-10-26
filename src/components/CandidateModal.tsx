@@ -7,6 +7,7 @@ import Modal from './Modal'
 import { downloadFlyer, renderFlyer, type FlyerData } from '../lib/flyer'
 import { codeLabel, ghs } from '../lib/format'
 import { useAuth } from '../store/auth'
+import { candidateShortUrl } from '../lib/site'
 
 interface Props {
   nomination: Nomination
@@ -45,6 +46,7 @@ export default function CandidateModal({ nomination: n, categoryName, election, 
     price: election.pricePerVote,
     closesAt: election.endsAt,
     brand: brand ?? undefined,
+    profileUrl: candidateShortUrl(n.id),
   }
 
   // The bio is not in the nominations list, so it is fetched when the window opens.

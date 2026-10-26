@@ -4,6 +4,7 @@ import { api, errorMessage, type Category, type Election, type Nomination } from
 import { Download, FileSpreadsheet, ListChecks, Loader2, Plus, Tags } from 'lucide-react'
 import { Avatar, Button, Card, EmptyState, IconButton, LinkButton, PageHeader, StatusChip } from '../components/ui'
 import { downloadFlyer } from '../lib/flyer'
+import { candidateShortUrl } from '../lib/site'
 import { useAuth } from '../store/auth'
 import CandidateModal from '../components/CandidateModal'
 import AddCandidatesModal from '../components/AddCandidatesModal'
@@ -114,6 +115,7 @@ export default function ElectionDetail() {
         price: election.pricePerVote,
         closesAt: election.endsAt,
         brand: user?.organisation?.brand ?? undefined,
+        profileUrl: candidateShortUrl(n.id),
       })
     } catch {
       toast.error('Could not make the flyer', 'Try again in a moment.')
