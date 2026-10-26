@@ -40,6 +40,8 @@ export interface User {
   showTour: boolean
   // Only in the answer to registering: false when the verification SMS could not be sent.
   phoneCodeSent?: boolean
+  // Only in the answer to registering: which of the two ways the code went out (SMS, email) were accepted.
+  codeBy?: { sms: boolean; email: boolean }
   // When the current session ends (ISO). The app warns shortly before.
   sessionExpiresAt?: string
   notificationPrefs: NotificationPrefs

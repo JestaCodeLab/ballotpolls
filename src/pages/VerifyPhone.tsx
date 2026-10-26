@@ -22,9 +22,12 @@ export default function VerifyPhone() {
   const [cooldown, setCooldown] = useState(user.phoneCodeSent === false ? 0 : COOLDOWN_SECONDS)
   const [changing, setChanging] = useState(false)
   const [newPhone, setNewPhone] = useState('')
+  // How the latest code went out. Both unless one of the two failed; known from sign-up and from each resend.
+  const [via, setVia] = useState<{ sms: boolean; email: boolean }>(user.codeBy ?? { sms: true, email: true })
 
   useEffect(() => {
     if (user.phoneCodeSent === false) toast.error('We could not send your code', 'Press Resend code to try again.')
+    else if (user.codeBy && !user.codeBy.sms) toast.info('The SMS did not go through', `We emailed your code to ${user.email}.`)
     // Only on arrival, from sign-up.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -55,8 +58,9 @@ export default function VerifyPhone() {
   const resend = async () => {
     setSending(true)
     try {
-      await api.post('/auth/resend-code')
-      toast.success('Code sent', `Check the SMS on ${formatPhone(toLocalPhone(user.phone))}.`)
+      const { data } = await api.post<{ codeBy?: { sms: boolean; email: boolean } }>('/auth/resend-code')
+      if (data.codeBy) setVia(data.codeBy)
+      toast.success('Code sent', data.codeBy && !data.codeBy.sms ? `The SMS did not go through, so we emailed it to ${user.email}.` : `Check your SMS on ${formatPhone(toLocalPhone(user.phone))} and your email.`)
       setCooldown(COOLDOWN_SECONDS)
       setCode('')
     } catch (err) {
@@ -91,9 +95,18 @@ export default function VerifyPhone() {
       </span>
       <h1 className="mt-5 font-display text-3xl font-bold tracking-tight">Verify your phone number</h1>
       <p className="mb-6 mt-1.5 text-[15px] leading-relaxed text-muted">
-        We sent a 6-digit code by SMS to{' '}
-        <strong className="font-semibold text-ink">{formatPhone(toLocalPhone(user.phone))}</strong>. Enter it below to finish
-        setting up your account.
+        We sent a 6-digit code {via.sms && (
+          <>
+            by SMS to <strong className="font-semibold text-ink">{formatPhone(toLocalPhone(user.phone))}</strong>
+          </>
+        )}
+        {via.sms && via.email && ' and '}
+        {via.email && (
+          <>
+            by email to <strong className="break-all font-semibold text-ink">{user.email}</strong>
+          </>
+        )}
+        . Enter either one below to finish setting up your account.
       </p>
 
       {changing ? (
