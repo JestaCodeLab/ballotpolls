@@ -526,7 +526,7 @@ function TeamSection() {
       sortValue: (m) => ROLE_INFO[m.role].label,
       cell: (m) =>
         m.id !== me.id && m.role !== 'orgadmin' ? (
-          <Select label={`Role for ${m.name}`} hideLabel className="min-w-[190px]" value={m.role} disabled={busyId === m.id} onChange={(v) => void changeRole(m, v)} options={TEAM_ROLE_OPTIONS} />
+          <Select label={`Role for ${m.name}`} hideLabel compact className="w-[170px]" value={m.role} disabled={busyId === m.id} onChange={(v) => void changeRole(m, v)} options={TEAM_ROLE_OPTIONS} />
         ) : (
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleChip(m.role)}`}>{ROLE_INFO[m.role].label}</span>
         ),

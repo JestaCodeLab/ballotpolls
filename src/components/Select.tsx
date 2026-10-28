@@ -18,6 +18,8 @@ interface Props {
   className?: string
   // Keeps the label for screen readers but hides it, for compact filter rows.
   hideLabel?: boolean
+  // A smaller field for dense rows such as table cells.
+  compact?: boolean
 }
 
 const MAX_PANEL = 288
@@ -27,7 +29,7 @@ const EDGE = 12
 // A dropdown that replaces the browser's own <select>. The list is drawn in a portal on <body> with fixed
 // positioning, so no card, scroll box or later element can clip it or paint over it. It opens upward when
 // there is more room above, and scrolls inside itself when the list is long.
-export default function Select({ label, value, options, onChange, placeholder = 'Select…', disabled, className = '', hideLabel }: Props) {
+export default function Select({ label, value, options, onChange, placeholder = 'Select…', disabled, className = '', hideLabel, compact }: Props) {
   const id = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -153,7 +155,7 @@ export default function Select({ label, value, options, onChange, placeholder = 
         disabled={disabled}
         onClick={() => (open ? close() : openList())}
         onKeyDown={onTriggerKey}
-        className="flex min-h-[46px] w-full items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3.5 text-left text-[15px] outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 disabled:bg-ground disabled:text-muted"
+        className={`flex w-full items-center justify-between gap-2 border border-field bg-white text-left ${compact ? 'min-h-9 rounded-lg px-2.5 text-sm' : 'min-h-[46px] rounded-[10px] px-3.5 text-[15px]'} outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20 disabled:bg-ground disabled:text-muted`}
       >
         <span id={`${id}-value`} className={`min-w-0 truncate ${current ? 'text-ink' : 'text-muted'}`}>
           {current?.label ?? placeholder}
