@@ -5,7 +5,7 @@ import { useAuth } from '../store/auth'
 import Topbar from './Topbar'
 import ProductTour from './ProductTour'
 import InstallBanner from './InstallBanner'
-import { ROLE_INFO, canOpen } from '../lib/roles'
+import { canOpen } from '../lib/roles'
 import { useDashboardTitle } from '../lib/useDashboardTitle'
 
 // Tab titles for the organiser dashboard.
@@ -57,7 +57,6 @@ function SidebarBody({ onNavigate, tour }: { onNavigate?: () => void; tour?: boo
       <div className="rounded-[10px] bg-white/[0.07] px-3 py-2.5">
         <div className="text-xs text-[#a9bbb3]">Organisation</div>
         <div className="mt-0.5 truncate font-semibold">{org?.name}</div>
-        {role && <div className="mt-1 text-xs text-[#a9bbb3]">Signed in as {ROLE_INFO[role].label}</div>}
       </div>
       <nav aria-label="Main" className="flex flex-col gap-1">
         {links.filter((l) => !role || canOpen(role, l.to)).map((l) => (
