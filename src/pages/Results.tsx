@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../store/auth'
 import { useSearchParams } from 'react-router-dom'
 import { BarChart3, Coins, Pencil, Trash2, Vote } from 'lucide-react'
 import { api, errorMessage, type Category, type Election, type Nomination } from '../lib/api'
@@ -32,6 +33,8 @@ const COL_MIN = 64
 
 // The same page serves organisers (their own elections) and super admins (every election, with its organisation named).
 export default function Results({ admin = false }: { admin?: boolean }) {
+  // Results checkers see votes only, never money.
+  const showRevenue = useAuth((s) => s.user?.role !== 'results_checker')
   // ?election=<id> opens the page on that election, e.g. from its details page.
   const [params] = useSearchParams()
   const wanted = params.get('election')
@@ -205,7 +208,7 @@ export default function Results({ admin = false }: { admin?: boolean }) {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-4">
+      <section className={`grid gap-4 ${showRevenue ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <Card className="p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="text-sm text-muted">Total votes</div>
@@ -213,13 +216,13 @@ export default function Results({ admin = false }: { admin?: boolean }) {
           </div>
           <div className="mt-1.5 font-display text-2xl font-bold tracking-tight sm:text-3xl">{totalVotes.toLocaleString()}</div>
         </Card>
-        <Card className="p-5">
+        {showRevenue && <Card className="p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="text-sm text-muted">Revenue (confirmed)</div>
             <StatIcon icon={Coins} />
           </div>
           <div className="mt-1.5 font-display text-2xl font-bold tracking-tight sm:text-3xl">{ghs(totalVotes * election.pricePerVote)}</div>
-        </Card>
+        </Card>}
       </section>
 
       {tabs.length === 0 ? (

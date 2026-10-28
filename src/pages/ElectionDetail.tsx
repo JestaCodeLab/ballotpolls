@@ -193,7 +193,7 @@ export default function ElectionDetail() {
         action={
           <div className="flex flex-wrap gap-3">
             {/* Nobody can have voted before voting opens, so there is nothing to see yet. */}
-            {!upcoming && (
+            {!upcoming && user?.role !== 'electoral_commission' && (
               <LinkButton to={`/results?election=${id}`} variant={closed ? 'primary' : 'secondary'}>
                 View results
               </LinkButton>
