@@ -251,6 +251,7 @@ function ProfileMenu() {
             <div className="min-w-0">
               <div className="text-[15px] font-semibold">{user.name}</div>
               <div className="truncate text-[13px] text-muted">{user.email}</div>
+              <span className="mt-1.5 inline-block rounded-full bg-brand-tint px-2.5 py-0.5 text-xs font-semibold text-[#0b5a43]">{ROLE_INFO[user.role].label}</span>
             </div>
           </div>
           <div className="p-1.5">

@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Mail, Trash2, UserPlus } from 'lucide-react'
+import { Mail, RefreshCw, Trash2, UserPlus } from 'lucide-react'
 import { api, errorMessage, type NotificationPrefs, type TeamMember, type TeamRole, type User } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { toast } from '../store/toast'
@@ -457,12 +457,23 @@ function TeamSection() {
   const [inviting, setInviting] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => {
-    api
-      .get<TeamMember[]>('/team')
-      .then((r) => setMembers(r.data))
-      .catch((err) => (toast.fromError(err), setMembers([])))
+  const [refreshing, setRefreshing] = useState(false)
+
+  const load = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      setMembers((await api.get<TeamMember[]>('/team')).data)
+    } catch (err) {
+      toast.fromError(err)
+      setMembers((list) => list ?? [])
+    } finally {
+      setRefreshing(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
 
   const replace = (m: TeamMember) => setMembers((list) => list?.map((x) => (x.id === m.id ? m : x)) ?? list)
 
@@ -568,10 +579,15 @@ function TeamSection() {
       title="Team"
       subtitle="Invite people to help run your elections. Each role only sees what it needs."
       action={
-        <Button type="button" onClick={() => setInviting(true)} className="min-h-[46px] gap-2 px-5">
-          <UserPlus size={18} strokeWidth={1.8} aria-hidden="true" />
-          Invite team member
-        </Button>
+        <div className="flex items-center gap-2">
+          <IconButton label="Refresh team" disabled={refreshing} onClick={() => void load()}>
+            <RefreshCw size={16} strokeWidth={1.8} aria-hidden="true" className={refreshing ? 'animate-spin' : ''} />
+          </IconButton>
+          <Button type="button" onClick={() => setInviting(true)} className="min-h-[46px] gap-2 px-5">
+            <UserPlus size={18} strokeWidth={1.8} aria-hidden="true" />
+            Invite team member
+          </Button>
+        </div>
       }
     >
       <div className="flex flex-wrap gap-x-8 gap-y-1 rounded-[12px] bg-white px-4 py-3 text-[13px] text-muted ring-1 ring-line">
