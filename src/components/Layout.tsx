@@ -5,6 +5,7 @@ import { useAuth } from '../store/auth'
 import Topbar from './Topbar'
 import ProductTour from './ProductTour'
 import InstallBanner from './InstallBanner'
+import { canOpen } from '../lib/roles'
 import { useDashboardTitle } from '../lib/useDashboardTitle'
 
 // Tab titles for the organiser dashboard.
@@ -47,6 +48,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 // that opens from the top bar on phones. Only the sidebar carries the product tour's markers.
 function SidebarBody({ onNavigate, tour }: { onNavigate?: () => void; tour?: boolean }) {
   const org = useAuth((s) => s.user?.organisation)
+  const role = useAuth((s) => s.user?.role)
   return (
     <>
       <div className="px-2">
@@ -57,7 +59,7 @@ function SidebarBody({ onNavigate, tour }: { onNavigate?: () => void; tour?: boo
         <div className="mt-0.5 truncate font-semibold">{org?.name}</div>
       </div>
       <nav aria-label="Main" className="flex flex-col gap-1">
-        {links.map((l) => (
+        {links.filter((l) => !role || canOpen(role, l.to)).map((l) => (
           <NavLink key={l.to} to={l.to} end={l.end} className={navClass} onClick={onNavigate} data-tour={tour ? l.tour : undefined}>
             <l.icon size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
             {l.label}
@@ -73,7 +75,7 @@ function SidebarBody({ onNavigate, tour }: { onNavigate?: () => void; tour?: boo
 }
 
 export default function Layout() {
-  const showTour = useAuth((s) => s.user?.showTour)
+  const showTour = useAuth((s) => s.user?.showTour && s.user.role === 'orgadmin')
   const { pathname } = useLocation()
   useDashboardTitle(TITLES)
   const [menuOpen, setMenuOpen] = useState(false)

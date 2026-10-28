@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuth } from './store/auth'
 import ToastViewport from './components/ToastViewport'
@@ -6,6 +6,8 @@ import ConfirmDialog from './components/ConfirmDialog'
 import { AppLoader } from './components/Loading'
 import SessionGuard from './components/SessionGuard'
 import Layout from './components/Layout'
+import SetPasswordModal from './components/SetPasswordModal'
+import { canOpen, homeFor } from './lib/roles'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -50,6 +52,7 @@ import AdminSmsReport from './pages/admin/sms/AdminSmsReport'
 import AdminSmsCreditReturn from './pages/admin/sms/AdminSmsCreditReturn'
 
 function Protected() {
+  const { pathname } = useLocation()
   const user = useAuth((s) => s.user)
   const loading = useAuth((s) => s.loading)
   if (loading) return <AppLoader />
@@ -58,6 +61,16 @@ function Protected() {
   if (user.role === 'superadmin') return <Navigate to="/admin" replace />
   // Registered but has not entered the SMS code yet: nothing else in the app opens until they do.
   if (!user.phoneVerified) return <VerifyPhone />
+  // An invited team member must replace the temporary password before anything opens.
+  if (user.mustChangePassword)
+    return (
+      <>
+        <div className="min-h-screen bg-ground" />
+        <SetPasswordModal />
+      </>
+    )
+  // Team members only open the pages their role allows (a results checker lands on live results).
+  if (!canOpen(user.role, pathname)) return <Navigate to={homeFor(user.role)} replace />
   return <Layout />
 }
 
@@ -67,7 +80,7 @@ function GuestOnly() {
   const user = useAuth((s) => s.user)
   const loading = useAuth((s) => s.loading)
   if (loading) return <AppLoader />
-  if (user) return <Navigate to={user.role === 'superadmin' ? '/admin' : '/dashboard'} replace />
+  if (user) return <Navigate to={homeFor(user.role)} replace />
   return <Outlet />
 }
 
@@ -77,7 +90,7 @@ function AdminOnly() {
   const loading = useAuth((s) => s.loading)
   if (loading) return <AppLoader />
   if (!user) return <Navigate to="/login" replace />
-  if (user.role !== 'superadmin') return <Navigate to="/dashboard" replace />
+  if (user.role !== 'superadmin') return <Navigate to={homeFor(user.role)} replace />
   return <AdminLayout />
 }
 

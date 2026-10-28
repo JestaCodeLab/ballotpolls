@@ -94,5 +94,10 @@ api.interceptors.response.use(undefined, (error: unknown) => {
     const user = useAuth.getState().user
     if (user) useAuth.setState({ user: { ...user, phoneVerified: false } })
   }
+  // An invited team member who has not chosen their own password yet: show the "set your password" window.
+  if (axios.isAxiosError(error) && error.response?.status === 403 && error.response.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
+    const user = useAuth.getState().user
+    if (user) useAuth.setState({ user: { ...user, mustChangePassword: true } })
+  }
   return Promise.reject(error)
 })

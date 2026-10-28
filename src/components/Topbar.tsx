@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { CheckCheck, Menu } from 'lucide-react'
 import { useAuth } from '../store/auth'
+import { ROLE_INFO } from '../lib/roles'
 import { useNotifications } from '../store/notifications'
 import { useDismiss } from '../lib/useDismiss'
 import { timeAgo } from '../lib/format'
@@ -236,7 +237,7 @@ function ProfileMenu() {
         <Avatar name={user.name} size={34} />
         <span className="hidden leading-tight sm:block">
           <span className="block text-sm font-semibold">{user.name}</span>
-          <span className="block text-xs text-muted">Organisation admin</span>
+          <span className="block text-xs text-muted">{ROLE_INFO[user.role].label}</span>
         </span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5b6b65" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d={open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
@@ -257,10 +258,12 @@ function ProfileMenu() {
               <svg {...icon} className="text-muted"><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4-6 8-6s7 2 8 6" /></svg>
               Profile settings
             </button>
-            <button role="menuitem" type="button" onClick={() => go('#organisation')} className={row}>
-              <svg {...icon} className="text-muted"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" /></svg>
-              Organisation
-            </button>
+            {user.role === 'orgadmin' && (
+              <button role="menuitem" type="button" onClick={() => go('#organisation')} className={row}>
+                <svg {...icon} className="text-muted"><path d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" /></svg>
+                Organisation
+              </button>
+            )}
             <Link role="menuitem" to="/" onClick={close} className={row}>
               <svg {...icon} className="text-muted"><path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-4v-6H9v6H5a1 1 0 01-1-1z" /></svg>
               Go to homepage

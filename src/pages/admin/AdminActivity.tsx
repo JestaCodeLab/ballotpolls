@@ -38,6 +38,8 @@ const TYPES: Record<string, { label: string; tone: Tone }> = {
   organisation_created: { label: 'Organisation created', tone: 'green' },
   ussd_service_saved: { label: 'USSD code saved', tone: 'blue' },
   sms_sent: { label: 'SMS sent', tone: 'grey' },
+  team_member_invited: { label: 'Team member invited', tone: 'green' },
+  team_member_removed: { label: 'Team member removed', tone: 'amber' },
 }
 
 const RANGES = [

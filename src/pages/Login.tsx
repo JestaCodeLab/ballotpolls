@@ -5,6 +5,7 @@ import { useAuth } from '../store/auth'
 import { Button, Input, PasswordInput } from '../components/ui'
 import { toast } from '../store/toast'
 import { firstProblem } from '../lib/validate'
+import { homeFor } from '../lib/roles'
 import { cleanPhoneInput, formatPhone, isGhanaPhone } from '../lib/phone'
 
 export default function Login() {
@@ -25,7 +26,7 @@ export default function Login() {
     setBusy(true)
     try {
       await login(phone, password)
-      navigate('/dashboard', { replace: true })
+      navigate(homeFor(useAuth.getState().user?.role ?? 'orgadmin'), { replace: true })
     } catch (err) {
       toast.fromError(err)
     } finally {

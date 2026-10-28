@@ -27,6 +27,21 @@ export interface AppNotification {
   read: boolean
 }
 
+export type Role = 'superadmin' | 'orgadmin' | 'results_checker' | 'electoral_commission'
+export type TeamRole = 'results_checker' | 'electoral_commission'
+
+export interface TeamMember {
+  id: string
+  firstName: string
+  lastName: string
+  name: string
+  email: string
+  phone: string
+  role: Role
+  status: 'invited' | 'active'
+  createdAt?: string
+}
+
 export interface User {
   id: string
   firstName: string
@@ -34,8 +49,10 @@ export interface User {
   name: string
   phone: string | null
   email: string
-  role: 'superadmin' | 'orgadmin'
+  role: Role
   phoneVerified: boolean
+  // True for an invited team member until they have replaced the temporary password from their invitation.
+  mustChangePassword?: boolean
   // True for a new account until it finishes or skips the first-time tour.
   showTour: boolean
   // Only in the answer to registering: false when the verification SMS could not be sent.

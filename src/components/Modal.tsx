@@ -9,13 +9,15 @@ interface Props {
   // Buttons pinned to the bottom of the window.
   footer?: ReactNode
   size?: 'md' | 'lg' | 'xl'
+  // Cannot be closed: no close button, and Escape or a click outside do nothing. For a step the person must finish.
+  locked?: boolean
 }
 
 const widths = { md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
 
 // The shared window for the "do it here without leaving the page" steps: dims the page, keeps keyboard focus inside,
 // closes on Escape or a click outside, and scrolls its own content when it is long.
-export default function Modal({ title, description, onClose, children, footer, size = 'md' }: Props) {
+export default function Modal({ title, description, onClose, children, footer, size = 'md', locked }: Props) {
   const id = useId()
   const dialog = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(document.activeElement as HTMLElement | null)
@@ -28,7 +30,7 @@ export default function Modal({ title, description, onClose, children, footer, s
   }, [])
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') return onClose()
+    if (e.key === 'Escape') return locked ? undefined : onClose()
     if (e.key !== 'Tab') return
     const items = Array.from(dialog.current?.querySelectorAll<HTMLElement>('input:not(:disabled), textarea:not(:disabled), button:not(:disabled), [role="combobox"]:not(:disabled), a[href]') ?? [])
     if (!items.length) return
@@ -44,7 +46,7 @@ export default function Modal({ title, description, onClose, children, footer, s
   }
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-ink/60 p-4" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-[65] flex items-center justify-center bg-ink/60 p-4" onMouseDown={(e) => !locked && e.target === e.currentTarget && onClose()}>
       <div
         ref={dialog}
         role="dialog"
@@ -60,9 +62,11 @@ export default function Modal({ title, description, onClose, children, footer, s
             </h2>
             {description && <p className="mt-1.5 text-sm leading-relaxed text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-muted hover:bg-ground hover:text-ink">
-            <X size={18} strokeWidth={1.8} aria-hidden="true" />
-          </button>
+          {!locked && (
+            <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-muted hover:bg-ground hover:text-ink">
+              <X size={18} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-2">{children}</div>
         {footer && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4">{footer}</div>}

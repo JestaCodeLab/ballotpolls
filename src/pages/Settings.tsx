@@ -1,67 +1,74 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { api, errorMessage, type NotificationPrefs, type User } from '../lib/api'
+import { Mail, Trash2, UserPlus } from 'lucide-react'
+import { api, errorMessage, type NotificationPrefs, type TeamMember, type TeamRole, type User } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { toast } from '../store/toast'
-import { Button, Card, Input, PageHeader, Switch, PasswordInput } from '../components/ui'
-import { firstProblem } from '../lib/validate'
-import { formatPhone, toLocalPhone } from '../lib/phone'
+import { Avatar, Button, Card, IconButton, Input, PageHeader, Select, Switch, PasswordInput } from '../components/ui'
+import Modal from '../components/Modal'
+import DataTable, { type Column } from '../components/DataTable'
+import { confirmDelete } from '../store/confirm'
+import { ROLE_INFO, TEAM_ROLE_OPTIONS } from '../lib/roles'
+import { firstProblem, isEmail } from '../lib/validate'
+import { cleanPhoneInput, formatPhone, isGhanaPhone, toLocalPhone } from '../lib/phone'
 import { DEFAULT_BRAND, MIN_ACCENT_CONTRAST, MIN_MAIN_CONTRAST, PRESETS, contrast, isHex, mix, onColor } from '../lib/color'
 
 const SECTIONS = [
   { id: 'profile', label: 'Profile' },
-  { id: 'organisation', label: 'Organisation' },
+  { id: 'organisation', label: 'Organisation', adminOnly: true },
+  { id: 'team', label: 'Team', adminOnly: true },
   { id: 'security', label: 'Password' },
-  { id: 'notifications', label: 'Notifications' },
+  { id: 'notifications', label: 'Notifications', adminOnly: true },
 ]
 
-function Section({ id, title, subtitle, children }: { id: string; title: string; subtitle: string; children: ReactNode }) {
-  return (
-    <Card className="scroll-mt-24">
-      <section id={id} aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
-        <div>
+function Section({ id, title, subtitle, children, action, wide }: { id: string; title: string; subtitle: string; children: ReactNode; action?: ReactNode; wide?: boolean }) {
+  const content = (
+    <section id={id} aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 flex-1 basis-64">
           <h2 id={`${id}-title`} className="font-display text-[22px] font-bold">
             {title}
           </h2>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
         </div>
-        {children}
-      </section>
-    </Card>
+        {action}
+      </div>
+      {children}
+    </section>
   )
+  // `wide` sections (the team table) are not boxed in a card: the table is its own card.
+  return wide ? content : <Card className="scroll-mt-24">{content}</Card>
 }
 
 export default function Settings() {
   const { hash } = useLocation()
-  const active = SECTIONS.find((s) => `#${s.id}` === hash)?.id ?? 'profile'
-
-  // Opening /settings#organisation (e.g. from the profile menu) scrolls to that card.
-  useEffect(() => {
-    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [hash])
+  // Team members (results checkers, electoral commission) only manage their own profile and password.
+  const isAdmin = useAuth((u) => u.user?.role === 'orgadmin')
+  const sections = SECTIONS.filter((x) => isAdmin || !x.adminOnly)
+  const active = sections.find((s) => `#${s.id}` === hash)?.id ?? 'profile'
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Manage your profile, organisation, password and notifications." />
-      <div className="flex flex-wrap items-start gap-7">
-        <nav aria-label="Settings sections" className="flex w-full flex-row gap-1 overflow-x-auto md:w-[200px] md:flex-col">
-          {SECTIONS.map((s) => (
-            <Link
-              key={s.id}
-              to={{ hash: `#${s.id}` }}
-              replace
-              className={`flex min-h-11 items-center whitespace-nowrap rounded-[10px] px-3.5 text-[15px] ${active === s.id ? 'bg-brand-tint font-semibold text-[#0b5a43]' : 'font-medium hover:bg-white'}`}
-            >
-              {s.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex min-w-0 max-w-[760px] flex-1 basis-[520px] flex-col gap-5">
-          <ProfileSection />
-          <OrganisationSection />
-          <PasswordSection />
-          <NotificationsSection />
-        </div>
+      <PageHeader title="Settings" subtitle={isAdmin ? 'Manage your profile, organisation, team, password and notifications.' : 'Manage your profile and password.'} />
+      <nav aria-label="Settings sections" className="-mt-2 flex gap-1 overflow-x-auto border-b border-line">
+        {sections.map((s) => (
+          <Link
+            key={s.id}
+            to={{ hash: `#${s.id}` }}
+            replace
+            aria-current={active === s.id ? 'page' : undefined}
+            className={`-mb-px flex min-h-11 items-center whitespace-nowrap border-b-2 px-4 text-[15px] ${active === s.id ? 'border-brand font-semibold text-[#0b5a43]' : 'border-transparent font-medium text-muted hover:text-ink'}`}
+          >
+            {s.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex flex-col gap-5">
+        {active === 'profile' && <ProfileSection />}
+        {active === 'organisation' && <OrganisationSection />}
+        {active === 'team' && <TeamSection />}
+        {active === 'security' && <PasswordSection />}
+        {active === 'notifications' && <NotificationsSection />}
       </div>
     </>
   )
@@ -100,13 +107,15 @@ function ProfileSection() {
           <Input label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} aria-required="true" autoComplete="given-name" />
           <Input label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} aria-required="true" autoComplete="family-name" />
         </div>
-        <div>
-          <Input label="Email" type="email" value={user.email} disabled readOnly />
-          <p className="mt-1.5 text-[13px] text-muted">Used for password reset links. It cannot be changed here.</p>
-        </div>
-        <div className="max-w-xs">
-          <Input label="Phone number" type="tel" value={formatPhone(toLocalPhone(user.phone))} disabled readOnly />
-          <p className="mt-1.5 text-[13px] text-muted">You sign in with this number, and withdrawal codes are sent to it.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Input label="Email" type="email" value={user.email} disabled readOnly />
+            <p className="mt-1.5 text-[13px] text-muted">Used for password reset links. It cannot be changed here.</p>
+          </div>
+          <div>
+            <Input label="Phone number" type="tel" value={formatPhone(toLocalPhone(user.phone))} disabled readOnly />
+            <p className="mt-1.5 text-[13px] text-muted">You sign in with this number, and withdrawal codes are sent to it.</p>
+          </div>
         </div>
         <div>
           <Button type="submit" disabled={busy} className="min-h-[46px] px-6">
@@ -372,6 +381,213 @@ function NotificationsSection() {
           </div>
         ))}
       </div>
+    </Section>
+  )
+}
+
+/* ---------- Team ---------- */
+
+const roleChip = (role: string) => (role === 'orgadmin' ? 'bg-brand-tint text-[#0b5a43]' : role === 'electoral_commission' ? 'bg-[#dfe9fb] text-[#1f3f7a]' : 'bg-[#e6ede9] text-[#3f4f49]')
+
+function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (m: TeamMember) => void }) {
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' })
+  const [role, setRole] = useState<TeamRole>('electoral_commission')
+  const [busy, setBusy] = useState(false)
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: k === 'phone' ? cleanPhoneInput(e.target.value) : e.target.value }))
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    const problem = firstProblem([
+      [!form.firstName.trim(), 'Enter their first name'],
+      [!form.lastName.trim(), 'Enter their last name'],
+      [!form.email.trim(), 'Enter their email address'],
+      [!isEmail(form.email), 'Enter a valid email address'],
+      [!form.phone, 'Enter their phone number'],
+      [!isGhanaPhone(form.phone), 'Enter a 10-digit Ghana phone number starting with 0'],
+    ])
+    if (problem) return toast.error(problem)
+    setBusy(true)
+    try {
+      const { data } = await api.post<TeamMember>('/team', { ...form, role })
+      onInvited(data)
+      toast.success('Invitation sent', `We emailed ${data.email} a temporary password.`)
+      onClose()
+    } catch (err) {
+      toast.fromError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      title="Invite a team member"
+      description="We email them a temporary password. They sign in with their phone number and are asked to choose their own password."
+      onClose={onClose}
+      footer={
+        <>
+          <Button type="button" variant="secondary" onClick={onClose} className="min-h-[46px] px-5">
+            Cancel
+          </Button>
+          <Button type="submit" form="invite-form" disabled={busy} className="min-h-[46px] px-6">
+            {busy ? 'Sending…' : 'Send invitation'}
+          </Button>
+        </>
+      }
+    >
+      <form id="invite-form" noValidate onSubmit={submit} className="flex flex-col gap-4 pb-2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input label="First name" value={form.firstName} onChange={set('firstName')} aria-required="true" autoComplete="off" maxLength={60} />
+          <Input label="Last name" value={form.lastName} onChange={set('lastName')} aria-required="true" autoComplete="off" maxLength={60} />
+        </div>
+        <Input label="Email" type="email" value={form.email} onChange={set('email')} aria-required="true" autoComplete="off" />
+        <Input label="Phone number" type="tel" inputMode="numeric" placeholder="024 123 4567" value={formatPhone(form.phone)} onChange={set('phone')} aria-required="true" autoComplete="off" hint="(they sign in with it)" />
+        <div>
+          <Select label="Role" value={role} onChange={(v) => setRole(v as TeamRole)} options={TEAM_ROLE_OPTIONS} />
+          <p className="mt-1.5 text-[13px] text-muted">{ROLE_INFO[role].description}</p>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+function TeamSection() {
+  const me = useAuth((s) => s.user)!
+  const [members, setMembers] = useState<TeamMember[] | null>(null)
+  const [inviting, setInviting] = useState(false)
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  useEffect(() => {
+    api
+      .get<TeamMember[]>('/team')
+      .then((r) => setMembers(r.data))
+      .catch((err) => (toast.fromError(err), setMembers([])))
+  }, [])
+
+  const replace = (m: TeamMember) => setMembers((list) => list?.map((x) => (x.id === m.id ? m : x)) ?? list)
+
+  const changeRole = async (m: TeamMember, role: string) => {
+    setBusyId(m.id)
+    try {
+      replace((await api.patch<TeamMember>(`/team/${m.id}`, { role })).data)
+      toast.success('Role updated', `${m.name} is now ${ROLE_INFO[role as TeamRole].label}.`)
+    } catch (err) {
+      toast.fromError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const resend = async (m: TeamMember) => {
+    setBusyId(m.id)
+    try {
+      replace((await api.post<TeamMember>(`/team/${m.id}/resend`)).data)
+      toast.success('New invitation sent', `${m.name} was emailed a new temporary password.`)
+    } catch (err) {
+      toast.fromError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const remove = async (m: TeamMember) => {
+    if (!(await confirmDelete({ title: `Remove ${m.name}?`, message: 'They lose access to your organisation straight away.' }))) return
+    setBusyId(m.id)
+    try {
+      await api.delete(`/team/${m.id}`)
+      setMembers((list) => list?.filter((x) => x.id !== m.id) ?? list)
+      toast.success('Team member removed')
+    } catch (err) {
+      toast.fromError(err)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const columns: Column<TeamMember>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      sortValue: (m) => m.name.toLowerCase(),
+      cell: (m) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={m.name} size={36} />
+          <span className="font-semibold">
+            {m.name} {m.id === me.id && <span className="text-xs font-normal text-muted">(you)</span>}
+          </span>
+        </div>
+      ),
+    },
+    { key: 'email', header: 'Email', sortValue: (m) => m.email, cell: (m) => <span className="break-all">{m.email}</span> },
+    { key: 'phone', header: 'Phone', className: 'whitespace-nowrap', cell: (m) => formatPhone(toLocalPhone(m.phone)) },
+    {
+      key: 'role',
+      header: 'Role',
+      sortValue: (m) => ROLE_INFO[m.role].label,
+      cell: (m) =>
+        m.id !== me.id && m.role !== 'orgadmin' ? (
+          <Select label={`Role for ${m.name}`} hideLabel className="min-w-[190px]" value={m.role} disabled={busyId === m.id} onChange={(v) => void changeRole(m, v)} options={TEAM_ROLE_OPTIONS} />
+        ) : (
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleChip(m.role)}`}>{ROLE_INFO[m.role].label}</span>
+        ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortValue: (m) => m.status,
+      cell: (m) =>
+        m.status === 'invited' ? (
+          <span className="rounded-full bg-[#fcefd0] px-2.5 py-1 text-xs font-semibold text-[#6b4300]">Invited</span>
+        ) : (
+          <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-semibold text-[#0b5a43]">Active</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      hideHeader: true,
+      align: 'right',
+      cell: (m) =>
+        m.id !== me.id && m.role !== 'orgadmin' ? (
+          <div className="flex justify-end gap-2">
+            <IconButton label="Resend invitation" disabled={busyId === m.id} onClick={() => void resend(m)}>
+              <Mail size={16} strokeWidth={1.8} aria-hidden="true" />
+            </IconButton>
+            <IconButton label="Remove from team" tone="danger" disabled={busyId === m.id} onClick={() => void remove(m)}>
+              <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" />
+            </IconButton>
+          </div>
+        ) : null,
+    },
+  ]
+
+  return (
+    <Section
+      id="team"
+      wide
+      title="Team"
+      subtitle="Invite people to help run your elections. Each role only sees what it needs."
+      action={
+        <Button type="button" onClick={() => setInviting(true)} className="min-h-[46px] gap-2 px-5">
+          <UserPlus size={18} strokeWidth={1.8} aria-hidden="true" />
+          Invite team member
+        </Button>
+      }
+    >
+      <div className="flex flex-wrap gap-x-8 gap-y-1 rounded-[12px] bg-white px-4 py-3 text-[13px] text-muted ring-1 ring-line">
+        {TEAM_ROLE_OPTIONS.map((r) => (
+          <div key={r.value}>
+            <span className="font-semibold text-ink">{r.label}:</span> {ROLE_INFO[r.value].description}
+          </div>
+        ))}
+      </div>
+      {members === null ? (
+        <p className="text-sm text-muted">Loading…</p>
+      ) : (
+        <DataTable caption="Team members" columns={columns} rows={members} rowKey={(m) => m.id} minWidth={760} initialSort={{ key: 'name', dir: 'asc' }} />
+      )}
+      {members !== null && members.length <= 1 && <p className="text-sm text-muted">No one else is on your team yet. Invite someone and they will get an email with a temporary password.</p>}
+      {inviting && <InviteModal onClose={() => setInviting(false)} onInvited={(m) => setMembers((list) => [...(list ?? []), m])} />}
     </Section>
   )
 }
