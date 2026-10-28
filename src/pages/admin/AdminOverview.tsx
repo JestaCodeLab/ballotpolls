@@ -8,6 +8,9 @@ import { PaymentChip } from '../../components/admin/parts'
 import { formatDateTime, ghs } from '../../lib/format'
 import { toast } from '../../store/toast'
 
+// 2026-10-28 -> 28 Oct
+const dayLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
 export default function AdminOverview() {
   const [stats, setStats] = useState<AdminStats | null>(null)
 
@@ -24,7 +27,13 @@ export default function AdminOverview() {
     { label: 'Organisations', value: String(stats.organisations), icon: Building2, note: stats.suspendedOrganisations ? `${stats.suspendedOrganisations} suspended` : undefined },
     { label: 'Live elections', value: String(stats.liveElections), icon: Radio, note: `${stats.elections} in total` },
   ]
-  const max = Math.max(1, ...(stats?.series.map((d) => d.votes) ?? []))
+  // Y axis: round the top up to a tidy number (1, 2, 5 times a power of ten per step) so the labels read cleanly.
+  const peak = Math.max(1, ...(stats?.series.map((d) => d.votes) ?? []))
+  const rough = peak / 4
+  const mag = 10 ** Math.floor(Math.log10(rough))
+  const step = Math.max(1, ([1, 2, 5, 10].find((m) => m * mag >= rough) ?? 10) * mag)
+  const top = step * 4
+  const ticks = [4, 3, 2, 1, 0].map((i) => i * step)
 
   return (
     <>
@@ -63,63 +72,79 @@ export default function AdminOverview() {
         </section>
       )}
 
-      <section className="grid items-start gap-5 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <h2 className="mb-1 font-display text-xl font-bold">Votes in the last 14 days</h2>
-          <p className="mb-5 text-sm text-muted">Counted votes per day.</p>
-          {!stats ? (
-            <Skeleton className="h-44 w-full" />
-          ) : (
-            <div
-              role="img"
-              aria-label={`Votes per day for the last 14 days: ${stats.series.map((d) => `${d.date} ${d.votes}`).join(', ')}`}
-              className="flex h-44 items-end gap-1.5"
-            >
-              {stats.series.map((d) => (
-                <div key={d.date} className="group relative flex h-full flex-1 items-end" title={`${d.date}: ${d.votes} votes · ${ghs(d.revenue)}`}>
-                  <div className="w-full rounded-t-md bg-brand" style={{ height: `${Math.max(d.votes ? 4 : 1, (d.votes / max) * 100)}%`, opacity: d.votes ? 1 : 0.25 }} />
-                </div>
+      <Card>
+        <h2 className="mb-1 font-display text-xl font-bold">Votes in the last 14 days</h2>
+        <p className="mb-5 text-sm text-muted">Counted votes per day.</p>
+        {!stats ? (
+          <Skeleton className="h-56 w-full" />
+        ) : (
+          <div
+            role="img"
+            aria-label={`Votes per day for the last 14 days: ${stats.series.map((d) => `${d.date} ${d.votes}`).join(', ')}`}
+            className="flex gap-3"
+          >
+            {/* Y axis: the vote counts the gridlines stand for. */}
+            <div className="flex w-10 shrink-0 flex-col justify-between pb-7 text-right text-xs tabular-nums text-muted" aria-hidden="true">
+              {ticks.map((t) => (
+                <span key={t} className="-my-2 leading-4">
+                  {t.toLocaleString()}
+                </span>
               ))}
             </div>
-          )}
-          {stats && (
-            <div className="mt-2 flex justify-between text-xs text-muted" aria-hidden="true">
-              <span>{stats.series[0]?.date.slice(5)}</span>
-              <span>{stats.series.at(-1)?.date.slice(5)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="relative h-52">
+                {ticks.map((t, i) => (
+                  <div key={t} className="absolute inset-x-0 border-t border-line" style={{ top: `${(i / (ticks.length - 1)) * 100}%` }} aria-hidden="true" />
+                ))}
+                <div className="relative flex h-full items-end gap-1 sm:gap-2">
+                  {stats.series.map((d) => (
+                    <div key={d.date} className="flex h-full flex-1 items-end" title={`${dayLabel(d.date)}: ${d.votes.toLocaleString()} votes · ${ghs(d.revenue)}`}>
+                      <div className="w-full rounded-t-md bg-brand" style={{ height: `${Math.max(d.votes ? 2 : 0.5, (d.votes / top) * 100)}%`, opacity: d.votes ? 1 : 0.25 }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* X axis: one date under every bar on wide screens, every other one on phones. */}
+              <div className="mt-2 flex gap-1 sm:gap-2" aria-hidden="true">
+                {stats.series.map((d, i) => (
+                  <span key={d.date} className={`min-w-0 flex-1 text-center text-[11px] leading-4 text-muted sm:text-xs ${i % 2 ? 'invisible sm:visible' : ''}`}>
+                    {dayLabel(d.date)}
+                  </span>
+                ))}
+              </div>
             </div>
-          )}
-        </Card>
-
-        <Card>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold">Latest payments</h2>
-            <Link to="/admin/payments" className="text-sm font-semibold text-brand hover:underline">
-              All
-            </Link>
           </div>
-          {stats && stats.recentPayments.length === 0 && (
-            <EmptyState size="sm" icon={CalendarDays} title="No payments yet">
-              Payments appear here as voters pay.
-            </EmptyState>
-          )}
-          <ul>
-            {stats?.recentPayments.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 border-t border-line py-3 first:border-t-0">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{p.election ?? p.reference}</div>
-                  <div className="text-xs text-muted">
-                    {p.reference} · {formatDateTime(p.createdAt)}
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-sm font-semibold">{ghs(p.amount)}</div>
-                  <PaymentChip status={p.status} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </section>
+        )}
+      </Card>
+
+      <Card>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold">Latest payments</h2>
+          <Link to="/admin/payments" className="text-sm font-semibold text-brand hover:underline">
+            View all
+          </Link>
+        </div>
+        {stats && stats.recentPayments.length === 0 && (
+          <EmptyState size="sm" icon={CalendarDays} title="No payments yet">
+            Payments appear here as voters pay.
+          </EmptyState>
+        )}
+        <ul>
+          {stats?.recentPayments.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-line py-3 first:border-t-0">
+              <div className="min-w-0 flex-1 basis-56">
+                <div className="truncate text-sm font-semibold">{p.election ?? p.reference}</div>
+                <div className="text-xs text-muted">{p.reference}</div>
+              </div>
+              <div className="text-sm text-muted sm:w-44">{formatDateTime(p.createdAt)}</div>
+              <div className="ml-auto flex items-center gap-4 sm:w-52 sm:justify-end">
+                <span className="text-sm font-semibold">{ghs(p.amount)}</span>
+                <PaymentChip status={p.status} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </>
   )
 }
