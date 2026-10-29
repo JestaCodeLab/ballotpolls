@@ -2,7 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Google needs a square icon in a multiple of 48px (PNG/ICO are the most reliable); the SVG is for browsers. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="/icons/favicon-96.png" sizes="96x96" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" sizes="192x192" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"BallotPolls","alternateName":"Ballot Polls","url":"https://www.ballotpolls.com/"}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BallotPolls | Run an election people vote in from any phone</title>
     <meta name="description" content="Run an election anyone can vote in from a basic phone. Voters dial a short code and pay by mobile money." />
